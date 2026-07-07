@@ -1,0 +1,24 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.sublime-*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Node (si se agrega en el futuro)
+node_modules/
+package-lock.json
+
+# Variables de entorno locales
+.env
+.env.local
+
+# Vercel
+.vercel/

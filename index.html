@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Vulkanic Sur Peru – Tu tienda de servicios digitales y licencias premium. Software, antivirus, herramientas y más al mejor precio." />
+  <meta name="keywords" content="servicios digitales, licencias, software, antivirus, Peru, Vulkanic" />
+  <meta property="og:title" content="Vulkanic Sur Peru – Servicios Digitales" />
+  <meta property="og:description" content="Tu tienda de confianza para licencias y servicios digitales premium." />
+  <title>Vulkanic Sur Peru – Servicios Digitales &amp; Licencias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ====== NAVBAR ====== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#inicio" class="nav-logo">
+        <img src="vulkanic_logo.png" alt="Vulkanic Logo" class="logo-img" />
+        <span class="logo-text">Vulkanic <span class="logo-accent">Sur Peru</span></span>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#inicio" class="nav-link active">Inicio</a></li>
+        <li><a href="#productos" class="nav-link">Productos</a></li>
+        <li><a href="#contacto" class="nav-link">Contacto</a></li>
+        <li><a href="#" class="nav-link admin-btn" id="openAdminBtn">⚙ Admin</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero" id="inicio">
+    <div class="hero-bg">
+      <img src="vulkanic_hero.png" alt="Hero Background" class="hero-bg-img" />
+      <div class="hero-overlay"></div>
+      <div class="lava-particles" id="lavaParticles"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Servicios Digitales Premium
+      </div>
+      <h1 class="hero-title">
+        Potencia tu mundo<br />
+        <span class="gradient-text">digital con Vulkanic</span>
+      </h1>
+      <p class="hero-subtitle">
+        Licencias originales, software premium y servicios digitales al mejor precio de Sur Peru. Compra 100% segura y entrega inmediata.
+      </p>
+      <div class="hero-ctas">
+        <a href="#productos" class="btn btn-primary">
+          <span>Ver Productos</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#contacto" class="btn btn-ghost">Contáctanos</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-num">500+</span>
+          <span class="stat-label">Clientes</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-num">99%</span>
+          <span class="stat-label">Satisfacción</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-num">24h</span>
+          <span class="stat-label">Soporte</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <span>Desliza</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- ====== FEATURES ====== -->
+  <section class="features-strip">
+    <div class="features-container">
+      <div class="feature-item">
+        <div class="feature-icon">🔥</div>
+        <div>
+          <h3>Entrega Inmediata</h3>
+          <p>Recibe tu licencia al instante vía WhatsApp</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🛡️</div>
+        <div>
+          <h3>100% Original</h3>
+          <p>Licencias auténticas con garantía</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">💎</div>
+        <div>
+          <h3>Precios Únicos</h3>
+          <p>Los mejores precios del mercado peruano</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🤝</div>
+        <div>
+          <h3>Soporte Incluido</h3>
+          <p>Asistencia post-compra garantizada</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== PRODUCTOS ====== -->
+  <section class="products-section" id="productos">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Catálogo</div>
+        <h2 class="section-title">Nuestros <span class="gradient-text">Productos</span></h2>
+        <p class="section-subtitle">Encuentra las mejores licencias y servicios digitales para tu negocio o uso personal</p>
+      </div>
+
+      <!-- Filtros de categoría -->
+      <div class="category-filters" id="categoryFilters">
+        <button class="filter-btn active" data-category="all">Todos</button>
+      </div>
+
+      <!-- Grid de productos -->
+      <div class="products-grid" id="productsGrid">
+        <!-- Productos cargados por JS -->
+      </div>
+
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-icon">📦</div>
+        <h3>No hay productos aún</h3>
+        <p>Accede al panel de administración para agregar tus primeros productos.</p>
+        <button class="btn btn-primary" onclick="openAdmin()">Ir a Admin</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== CONTACTO ====== -->
+  <section class="contact-section" id="contacto">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Contáctanos</div>
+        <h2 class="section-title">¿Necesitas <span class="gradient-text">Ayuda?</span></h2>
+        <p class="section-subtitle">Estamos disponibles para atenderte y resolver todas tus dudas</p>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-card" id="contactCard">
+          <h3>Envíanos un mensaje</h3>
+          <form class="contact-form" id="contactForm">
+            <div class="form-group">
+              <label for="contactName">Tu nombre</label>
+              <input type="text" id="contactName" placeholder="¿Cómo te llamas?" required />
+            </div>
+            <div class="form-group">
+              <label for="contactMsg">Mensaje</label>
+              <textarea id="contactMsg" rows="4" placeholder="¿En qué te podemos ayudar?" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Enviar por WhatsApp
+            </button>
+          </form>
+        </div>
+        <div class="contact-info">
+          <div class="info-card">
+            <div class="info-icon">💬</div>
+            <h4>WhatsApp</h4>
+            <p>Atención rápida y personalizada</p>
+            <a href="#" class="info-link" id="whatsappLink">Escribir ahora</a>
+          </div>
+          <div class="info-card">
+            <div class="info-icon">⏰</div>
+            <h4>Horario</h4>
+            <p>Lunes a Sábado<br/>9:00 AM – 9:00 PM</p>
+          </div>
+          <div class="info-card">
+            <div class="info-icon">📍</div>
+            <h4>Ubicación</h4>
+            <p>Sur Peru – Servicio a todo el país</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="logo-text">Vulkanic <span class="logo-accent">Sur Peru</span></span>
+        <p>Tu tienda de confianza para licencias y servicios digitales premium.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#inicio">Inicio</a>
+        <a href="#productos">Productos</a>
+        <a href="#contacto">Contacto</a>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 Vulkanic Sur Peru. Todos los derechos reservados.</p>
+        <p>Hecho con 🔥 en Peru</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ====== MODAL DE PRODUCTO ====== -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div class="modal-body" id="modalBody">
+        <!-- Contenido dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== PANEL DE ADMINISTRACIÓN ====== -->
+  <div class="admin-overlay" id="adminOverlay">
+    <div class="admin-panel">
+      <div class="admin-header">
+        <h2>⚙ Panel de Administración</h2>
+        <button class="admin-close" id="adminClose">✕</button>
+      </div>
+
+      <!-- Autenticación -->
+      <div class="admin-auth" id="adminAuth">
+        <div class="auth-icon">🔐</div>
+        <h3>Acceso Seguro</h3>
+        <p>Ingresa la contraseña para administrar los productos</p>
+        <div class="form-group">
+          <input type="password" id="adminPassword" placeholder="Contraseña" />
+        </div>
+        <button class="btn btn-primary btn-full" id="adminLoginBtn">Ingresar</button>
+        <p class="auth-hint">Contraseña por defecto: <code>vulkanic2025</code></p>
+      </div>
+
+      <!-- Panel principal -->
+      <div class="admin-main" id="adminMain" style="display:none;">
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-tab="products">📦 Productos</button>
+          <button class="admin-tab" data-tab="settings">⚙ Configuración</button>
+        </div>
+
+        <!-- Tab Productos -->
+        <div class="admin-tab-content active" id="tab-products">
+          <div class="admin-actions">
+            <button class="btn btn-primary" id="addProductBtn">+ Agregar Producto</button>
+          </div>
+
+          <!-- Formulario de producto -->
+          <div class="product-form-container" id="productFormContainer" style="display:none;">
+            <h3 id="productFormTitle">Nuevo Producto</h3>
+            <form id="productForm">
+              <input type="hidden" id="productId" />
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="prodName">Nombre del producto *</label>
+                  <input type="text" id="prodName" placeholder="Ej: Windows 11 Pro" required />
+                </div>
+                <div class="form-group">
+                  <label for="prodCategory">Categoría *</label>
+                  <input type="text" id="prodCategory" placeholder="Ej: Sistema Operativo" required />
+                </div>
+                <div class="form-group">
+                  <label for="prodPrice">Precio (S/) *</label>
+                  <input type="number" id="prodPrice" placeholder="29.90" step="0.01" min="0" required />
+                </div>
+                <div class="form-group">
+                  <label for="prodOldPrice">Precio anterior (opcional)</label>
+                  <input type="number" id="prodOldPrice" placeholder="49.90" step="0.01" min="0" />
+                </div>
+                <div class="form-group form-full">
+                  <label for="prodDesc">Descripción *</label>
+                  <textarea id="prodDesc" rows="3" placeholder="Describe el producto..." required></textarea>
+                </div>
+                <div class="form-group form-full">
+                  <label for="prodFeatures">Características (una por línea) *</label>
+                  <textarea id="prodFeatures" rows="5" placeholder="Activación permanente&#10;Para 1 PC&#10;Todas las ediciones&#10;Soporte incluido"></textarea>
+                </div>
+                <div class="form-group form-full">
+                  <label for="prodEmoji">Emoji / Ícono del producto</label>
+                  <input type="text" id="prodEmoji" placeholder="💻" maxlength="4" />
+                </div>
+                <div class="form-group form-full">
+                  <label>
+                    <input type="checkbox" id="prodFeatured" />
+                    Marcar como destacado (badge especial)
+                  </label>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="cancelProductBtn">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Producto</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Lista de productos admin -->
+          <div class="admin-products-list" id="adminProductsList">
+            <!-- Dinámico -->
+          </div>
+        </div>
+
+        <!-- Tab Configuración -->
+        <div class="admin-tab-content" id="tab-settings">
+          <form id="settingsForm">
+            <div class="form-group">
+              <label for="settingsWhatsapp">Número de WhatsApp *</label>
+              <input type="text" id="settingsWhatsapp" placeholder="51987654321" />
+              <small>Incluye código de país sin + (ej: 51987654321)</small>
+            </div>
+            <div class="form-group">
+              <label for="settingsStoreName">Nombre de la tienda</label>
+              <input type="text" id="settingsStoreName" placeholder="Vulkanic Sur Peru" />
+            </div>
+            <div class="form-group">
+              <label for="settingsPassword">Nueva contraseña admin</label>
+              <input type="password" id="settingsPassword" placeholder="Dejar en blanco para no cambiar" />
+            </div>
+
+            <!-- FIREBASE CONFIG -->
+            <div class="firebase-config-section">
+              <div class="firebase-config-header">
+                <span class="firebase-icon">🔥</span>
+                <div>
+                  <h4>Firebase Firestore</h4>
+                  <p>Conecta tu base de datos en la nube para que los productos persistan online</p>
+                </div>
+                <div class="firebase-status" id="firebaseStatus">
+                  <span class="status-dot" id="firebaseStatusDot"></span>
+                  <span id="firebaseStatusText">Sin conectar</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="settingsFirebaseConfig">Firebase Config (pega el objeto JSON)</label>
+                <textarea id="settingsFirebaseConfig" rows="7" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "tu-proyecto.firebaseapp.com",
+  "projectId": "tu-proyecto",
+  "storageBucket": "tu-proyecto.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123..."
+}'></textarea>
+                <small>Copia el objeto <code>firebaseConfig</code> de tu consola Firebase → Configuración del proyecto → Tus apps</small>
+              </div>
+              <button type="button" class="btn btn-ghost" id="testFirebaseBtn" style="margin-bottom:12px;">🔌 Probar Conexión</button>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== TOAST NOTIFICATIONS ====== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Firebase SDK v9 compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
