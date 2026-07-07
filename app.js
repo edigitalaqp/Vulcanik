@@ -27,7 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initLavaParticles();
   bindEvents();
   updateWhatsAppLinks();
-  initFirebase(); // Try to connect Firebase on load
+  initFirebase();
+
+  // Open admin if URL contains ?admin=1
+  if (new URLSearchParams(window.location.search).get('admin') === '1') {
+    openAdmin();
+  }
 });
 
 // ─── SETTINGS STORAGE ────────────────────────────────────────────────────────
@@ -36,7 +41,7 @@ function loadSettingsFromStorage() {
   const savedSettings = localStorage.getItem('vk_settings');
   if (savedSettings) {
     try { state.settings = { ...state.settings, ...JSON.parse(savedSettings) }; }
-    catch (e) {}
+    catch (e) { }
   }
 }
 
@@ -65,30 +70,21 @@ function saveLocalProducts() {
 function initFirebase(config = null) {
   const cfg = config || state.settings.firebaseConfig;
   if (!cfg) {
-    // No Firebase config – use localStorage
-    console.log('[Vulkanic] Firebase not configured. Using localStorage.');
     loadLocalProducts();
     updateFirebaseStatusUI(false);
     return;
   }
 
   try {
-    // Clear existing Firebase apps to avoid duplicate error
     if (firebase.apps.length > 0) {
       firebase.apps.forEach(app => app.delete());
     }
-
     firebase.initializeApp(cfg);
     const db = firebase.firestore();
     state.db = db;
-
-    // Enable real-time listener
     startFirestoreListener(db);
     updateFirebaseStatusUI(true);
-    console.log('[Vulkanic] Firebase connected ✅');
-
   } catch (err) {
-    console.error('[Vulkanic] Firebase error:', err);
     updateFirebaseStatusUI(false);
     showToast('Error al conectar Firebase. Usando modo local.', 'error');
     loadLocalProducts();
@@ -96,7 +92,6 @@ function initFirebase(config = null) {
 }
 
 function startFirestoreListener(db) {
-  // Unsubscribe any previous listener
   if (state.unsubscribe) state.unsubscribe();
 
   state.unsubscribe = db.collection('products')
@@ -111,9 +106,7 @@ function startFirestoreListener(db) {
         renderAdminProductList();
       },
       err => {
-        console.error('[Vulkanic] Firestore error:', err);
         showToast('Error al leer Firestore. Revisa las reglas de seguridad.', 'error');
-        // Fallback to local
         state.db = null;
         updateFirebaseStatusUI(false);
         loadLocalProducts();
@@ -122,17 +115,17 @@ function startFirestoreListener(db) {
 }
 
 function updateFirebaseStatusUI(connected) {
-  const dot  = document.getElementById('firebaseStatusDot');
+  const dot = document.getElementById('firebaseStatusDot');
   const text = document.getElementById('firebaseStatusText');
   if (!dot || !text) return;
   if (connected) {
-    dot.style.background  = '#22c55e';
-    dot.style.boxShadow   = '0 0 8px #22c55e';
+    dot.style.background = '#22c55e';
+    dot.style.boxShadow = '0 0 8px #22c55e';
     text.textContent = 'Conectado ✓';
     text.style.color = '#22c55e';
   } else {
-    dot.style.background  = '#f59e0b';
-    dot.style.boxShadow   = '0 0 8px #f59e0b';
+    dot.style.background = '#f59e0b';
+    dot.style.boxShadow = '0 0 8px #f59e0b';
     text.textContent = 'Sin conectar';
     text.style.color = '#f59e0b';
   }
@@ -217,9 +210,9 @@ function loadSampleProducts() {
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
 
 function initNavbar() {
-  const navbar   = document.getElementById('navbar');
-  const toggle   = document.getElementById('navToggle');
-  const links    = document.getElementById('navLinks');
+  const navbar = document.getElementById('navbar');
+  const toggle = document.getElementById('navToggle');
+  const links = document.getElementById('navLinks');
   const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
 
   window.addEventListener('scroll', () => {
@@ -242,7 +235,7 @@ function initNavbar() {
 
 function updateActiveNavLink() {
   const sections = ['inicio', 'productos', 'contacto'];
-  const navLinks  = document.querySelectorAll('.nav-link');
+  const navLinks = document.querySelectorAll('.nav-link');
   let current = '';
 
   sections.forEach(id => {
@@ -259,15 +252,15 @@ function updateActiveNavLink() {
 
 function initLavaParticles() {
   const container = document.getElementById('lavaParticles');
-  const colors    = ['#ff5500', '#ff7733', '#ffaa00', '#ffcc44', '#ff3300'];
+  const colors = ['#ff5500', '#ff7733', '#ffaa00', '#ffcc44', '#ff3300'];
 
   for (let i = 0; i < 25; i++) {
-    const p     = document.createElement('div');
+    const p = document.createElement('div');
     p.className = 'lava-particle';
-    const size  = Math.random() * 6 + 3;
+    const size = Math.random() * 6 + 3;
     const color = colors[Math.floor(Math.random() * colors.length)];
     const delay = (i * 0.4) % 10;
-    const dur   = 8 + Math.random() * 8;
+    const dur = 8 + Math.random() * 8;
 
     p.style.cssText = `
       width: ${size}px;
@@ -285,7 +278,7 @@ function initLavaParticles() {
 // ─── RENDER PRODUCTS ─────────────────────────────────────────────────────────
 
 function renderProducts(filterCategory = 'all') {
-  const grid       = document.getElementById('productsGrid');
+  const grid = document.getElementById('productsGrid');
   const emptyState = document.getElementById('emptyState');
 
   const filtered = filterCategory === 'all'
@@ -330,7 +323,7 @@ function productCardHTML(p, index) {
   const features = (p.features || []).slice(0, 3);
   return `
     <div class="product-card" onclick="openProductModal('${p.id}')" style="animation-delay:${index * 0.07}s;">
-      ${p.featured ? '<div class="product-badge-featured">⭐ Destacado</div>' : ''}
+      ${p.featured ? '<div class="product-badge-featured">Destacado</div>' : ''}
       <div class="product-card-top">
         <div class="product-emoji">${p.emoji || '📦'}</div>
       </div>
@@ -362,8 +355,8 @@ function openProductModal(productId) {
   const p = state.products.find(x => x.id === productId);
   if (!p) return;
 
-  const modal    = document.getElementById('productModal');
-  const body     = document.getElementById('modalBody');
+  const modal = document.getElementById('productModal');
+  const body = document.getElementById('modalBody');
   const features = p.features || [];
 
   body.innerHTML = `
@@ -377,7 +370,7 @@ function openProductModal(productId) {
     <p class="modal-product-desc">${escHtml(p.description)}</p>
     ${features.length ? `
       <div class="modal-features">
-        <h4>✨ Características incluidas</h4>
+        <h4>Características incluidas</h4>
         <ul class="modal-feature-list">
           ${features.map(f => `<li>${escHtml(f)}</li>`).join('')}
         </ul>
@@ -412,10 +405,10 @@ function buyNow(productId) {
 
   const msg = encodeURIComponent(
     `¡Hola! Quiero comprar:\n\n` +
-    `📦 *${p.name}*\n` +
-    `💰 Precio: S/ ${Number(p.price).toFixed(2)}\n` +
-    `🏷️ Categoría: ${p.category}\n\n` +
-    `¿Podrías ayudarme con la compra? 🙏`
+    `*${p.name}*\n` +
+    `Precio: S/ ${Number(p.price).toFixed(2)}\n` +
+    `Categoría: ${p.category}\n\n` +
+    `¿Podrías ayudarme con la compra?`
   );
   window.open(`https://wa.me/${state.settings.whatsapp}?text=${msg}`, '_blank');
 }
@@ -434,7 +427,7 @@ function initContactForm() {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = document.getElementById('contactName').value.trim();
-    const msg  = document.getElementById('contactMsg').value.trim();
+    const msg = document.getElementById('contactMsg').value.trim();
 
     if (!name || !msg) { showToast('Completa todos los campos', 'error'); return; }
 
@@ -443,7 +436,7 @@ function initContactForm() {
     );
     window.open(`https://wa.me/${state.settings.whatsapp}?text=${text}`, '_blank');
     form.reset();
-    showToast('¡Mensaje preparado! Te abrimos WhatsApp 🔥', 'success');
+    showToast('Mensaje preparado. Abriendo WhatsApp...', 'success');
   });
 }
 
@@ -460,7 +453,7 @@ function openAdmin() {
   }
 
   // Populate settings form
-  document.getElementById('settingsWhatsapp').value  = state.settings.whatsapp || '';
+  document.getElementById('settingsWhatsapp').value = state.settings.whatsapp || '';
   document.getElementById('settingsStoreName').value = state.settings.storeName || '';
 
   // Populate Firebase config if saved
@@ -484,7 +477,7 @@ function renderAdminProductList() {
   const list = document.getElementById('adminProductsList');
   if (!list) return;
 
-  const mode = state.db ? '☁️ Firebase' : '💾 Local';
+  const mode = state.db ? 'Firebase' : 'Local';
 
   if (state.products.length === 0) {
     list.innerHTML = `
@@ -504,8 +497,12 @@ function renderAdminProductList() {
           <div class="admin-product-cat">${escHtml(p.category)} · S/ ${Number(p.price).toFixed(2)}</div>
         </div>
         <div class="admin-product-actions">
-          <button class="btn-icon" onclick="editProduct('${p.id}')" title="Editar">✏️</button>
-          <button class="btn-icon danger" onclick="deleteProduct('${p.id}')" title="Eliminar">🗑️</button>
+          <button class="btn-icon" onclick="editProduct('${p.id}')" title="Editar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" onclick="deleteProduct('${p.id}')" title="Eliminar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
         </div>
       </div>
     `).join('');
@@ -516,18 +513,18 @@ function renderAdminProductList() {
 function showProductForm(product = null) {
   const container = document.getElementById('productFormContainer');
   container.style.display = 'block';
-  state.editingProductId   = product ? product.id : null;
+  state.editingProductId = product ? product.id : null;
   document.getElementById('productFormTitle').textContent = product ? 'Editar Producto' : 'Nuevo Producto';
 
-  document.getElementById('productId').value       = product?.id || '';
-  document.getElementById('prodName').value        = product?.name || '';
-  document.getElementById('prodCategory').value    = product?.category || '';
-  document.getElementById('prodPrice').value       = product?.price || '';
-  document.getElementById('prodOldPrice').value    = product?.oldPrice || '';
-  document.getElementById('prodDesc').value        = product?.description || '';
-  document.getElementById('prodFeatures').value   = (product?.features || []).join('\n');
-  document.getElementById('prodEmoji').value       = product?.emoji || '📦';
-  document.getElementById('prodFeatured').checked  = product?.featured || false;
+  document.getElementById('productId').value = product?.id || '';
+  document.getElementById('prodName').value = product?.name || '';
+  document.getElementById('prodCategory').value = product?.category || '';
+  document.getElementById('prodPrice').value = product?.price || '';
+  document.getElementById('prodOldPrice').value = product?.oldPrice || '';
+  document.getElementById('prodDesc').value = product?.description || '';
+  document.getElementById('prodFeatures').value = (product?.features || []).join('\n');
+  document.getElementById('prodEmoji').value = product?.emoji || '📦';
+  document.getElementById('prodFeatured').checked = product?.featured || false;
 
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -550,7 +547,7 @@ async function deleteProduct(id) {
     // Firebase delete
     try {
       await state.db.collection('products').doc(id).delete();
-      showToast('Producto eliminado de Firebase', 'info');
+      showToast('Producto eliminado.', 'info');
     } catch (err) {
       showToast('Error al eliminar: ' + err.message, 'error');
     }
@@ -567,15 +564,15 @@ async function deleteProduct(id) {
 async function saveProduct(e) {
   e.preventDefault();
 
-  const name        = document.getElementById('prodName').value.trim();
-  const category    = document.getElementById('prodCategory').value.trim();
-  const price       = parseFloat(document.getElementById('prodPrice').value);
-  const oldPrice    = parseFloat(document.getElementById('prodOldPrice').value) || null;
+  const name = document.getElementById('prodName').value.trim();
+  const category = document.getElementById('prodCategory').value.trim();
+  const price = parseFloat(document.getElementById('prodPrice').value);
+  const oldPrice = parseFloat(document.getElementById('prodOldPrice').value) || null;
   const description = document.getElementById('prodDesc').value.trim();
   const featuresRaw = document.getElementById('prodFeatures').value.trim();
-  const features    = featuresRaw ? featuresRaw.split('\n').map(f => f.trim()).filter(Boolean) : [];
-  const emoji       = document.getElementById('prodEmoji').value.trim() || '📦';
-  const featured    = document.getElementById('prodFeatured').checked;
+  const features = featuresRaw ? featuresRaw.split('\n').map(f => f.trim()).filter(Boolean) : [];
+  const emoji = document.getElementById('prodEmoji').value.trim() || '📦';
+  const featured = document.getElementById('prodFeatured').checked;
 
   if (!name || !category || isNaN(price)) {
     showToast('Completa los campos requeridos (*)', 'error');
@@ -592,11 +589,11 @@ async function saveProduct(e) {
     try {
       if (state.editingProductId) {
         await state.db.collection('products').doc(state.editingProductId).update(productData);
-        showToast('Producto actualizado en Firebase ✅', 'success');
+        showToast('Producto actualizado.', 'success');
       } else {
         productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         await state.db.collection('products').add(productData);
-        showToast('Producto guardado en Firebase 🔥', 'success');
+        showToast('Producto guardado.', 'success');
       }
     } catch (err) {
       showToast('Error al guardar: ' + err.message, 'error');
@@ -607,10 +604,10 @@ async function saveProduct(e) {
     if (state.editingProductId) {
       const idx = state.products.findIndex(x => x.id === state.editingProductId);
       if (idx !== -1) state.products[idx] = { ...state.products[idx], ...productData };
-      showToast('Producto actualizado (modo local) ✅', 'success');
+      showToast('Producto actualizado.', 'success');
     } else {
       state.products.push({ id: 'p_' + Date.now(), createdAt: Date.now(), ...productData });
-      showToast('Producto agregado (modo local) 🔥', 'success');
+      showToast('Producto agregado.', 'success');
     }
     saveLocalProducts();
     renderProducts();
@@ -625,16 +622,16 @@ async function saveProduct(e) {
 function saveSettingsForm(e) {
   e.preventDefault();
 
-  const whatsapp  = document.getElementById('settingsWhatsapp').value.trim();
+  const whatsapp = document.getElementById('settingsWhatsapp').value.trim();
   const storeName = document.getElementById('settingsStoreName').value.trim();
-  const password  = document.getElementById('settingsPassword').value.trim();
-  const fbRaw     = document.getElementById('settingsFirebaseConfig').value.trim();
+  const password = document.getElementById('settingsPassword').value.trim();
+  const fbRaw = document.getElementById('settingsFirebaseConfig').value.trim();
 
   if (!whatsapp) { showToast('El número de WhatsApp es requerido', 'error'); return; }
 
-  state.settings.whatsapp  = whatsapp;
+  state.settings.whatsapp = whatsapp;
   if (storeName) state.settings.storeName = storeName;
-  if (password)  state.settings.adminPassword = password;
+  if (password) state.settings.adminPassword = password;
 
   // Parse Firebase config
   if (fbRaw) {
@@ -659,7 +656,7 @@ function saveSettingsForm(e) {
     initFirebase(state.settings.firebaseConfig);
   }
 
-  showToast('Configuración guardada ✅', 'success');
+  showToast('Configuración guardada.', 'success');
   document.getElementById('settingsPassword').value = '';
 }
 
@@ -698,23 +695,24 @@ async function testFirebaseConnection() {
     saveSettingsToStorage();
     startFirestoreListener(db);
     updateFirebaseStatusUI(true);
-    showToast('¡Firebase conectado exitosamente! 🔥', 'success');
+    showToast('Firebase conectado correctamente.', 'success');
   } catch (err) {
     updateFirebaseStatusUI(false);
     showToast('Error: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '🔌 Probar Conexión';
+    btn.textContent = 'Probar Conexión';
   }
 }
 
 // ─── BIND EVENTS ─────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  // Open Admin
-  document.getElementById('openAdminBtn').addEventListener('click', (e) => {
-    e.preventDefault(); openAdmin();
-  });
+  // Open Admin — now triggered by URL param, not navbar button
+  const openAdminBtn = document.getElementById('openAdminBtn');
+  if (openAdminBtn) {
+    openAdminBtn.addEventListener('click', (e) => { e.preventDefault(); openAdmin(); });
+  }
 
   // Close Admin
   document.getElementById('adminClose').addEventListener('click', closeAdmin);
@@ -734,7 +732,7 @@ function bindEvents() {
         document.getElementById('settingsFirebaseConfig').value =
           JSON.stringify(state.settings.firebaseConfig, null, 2);
       }
-      showToast('¡Bienvenido al panel! 🔥', 'success');
+      showToast('Acceso concedido.', 'success');
     } else {
       showToast('Contraseña incorrecta', 'error');
       document.getElementById('adminPassword').value = '';
@@ -812,10 +810,14 @@ function initScrollReveal() {
 
 function showToast(message, type = 'info') {
   const container = document.getElementById('toastContainer');
-  const icons = { success: '✅', error: '❌', info: '🔥' };
+  const icons = {
+    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+  };
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${icons[type] || '🔥'}</span> ${escHtml(message)}`;
+  toast.innerHTML = `<span>${icons[type] || icons.info}</span> ${escHtml(message)}`;
   container.appendChild(toast);
 
   setTimeout(() => {
