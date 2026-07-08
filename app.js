@@ -272,9 +272,12 @@ function showTotpSetup(secret) {
   document.getElementById('totpSecretDisplay').textContent='Clave manual: '+secret;
   document.getElementById('adminAuth').style.display='none';
   document.getElementById('adminTotpSetup').style.display='block';
+  // Store secret on the confirm button for validation
+  var setupBtn=document.getElementById('totpSetupBtn');
+  if(setupBtn) setupBtn._pendingSecret=secret;
   var qr=document.getElementById('totpQrContainer'); qr.innerHTML='';
   var canvas=document.createElement('canvas');
-  QRCode.toCanvas(canvas,totp.toString(),{width:180,margin:2,color:{dark:'#ffffff',light:'#111111'}},function(err){
+  QRCode.toCanvas(canvas,totp.toString(),{width:200,margin:2,color:{dark:'#ffffff',light:'#111111'}},function(err){
     if(!err) qr.appendChild(canvas);
     else qr.innerHTML='<small style="color:var(--tx-3)">Usa la clave manual: '+secret+'</small>';
   });
@@ -288,6 +291,11 @@ function openAdmin() {
     document.getElementById('adminMain').style.display='none';
     var tg=document.getElementById('totpCodeGroup');
     if(tg) tg.style.display=isTotpConfigured()?'block':'none';
+    // If TOTP not configured yet, auto-show setup panel with a fresh secret
+    if(!isTotpConfigured()){
+      var freshSecret=generateTotpSecret();
+      showTotpSetup(freshSecret);
+    }
   }
   document.getElementById('settingsWhatsapp').value=state.settings.whatsapp||'';
   document.getElementById('settingsStoreName').value=state.settings.storeName||'';
@@ -335,7 +343,10 @@ function hideProductForm(){
   state.editingProductId=null;
 }
 
-window.editProduct=function(id){ var p=state.products.find(function(x){return x.id===id;}); if(p) showProductForm(p); };
+window.editProduct=function(id){
+  var p=state.products.find(function(x){return x.id===id;});
+  if(p){ showProductForm(p); setTimeout(function(){ startDraftAutosave(); },100); }
+};
 
 window.deleteProduct=async function(id){
   if(!confirm('Eliminar este producto?')) return;
@@ -356,17 +367,26 @@ async function saveProduct(e) {
   var featured=document.getElementById('prodFeatured').checked;
   var imageUrl=(document.getElementById('prodImage')?document.getElementById('prodImage').value.trim():'');
   if(!name||!category||isNaN(price)){showToast('Completa los campos requeridos (*)','error');return;}
+  var saveBtn=document.querySelector('#productForm button[type="submit"]');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Guardando…';}
   var pd={name:name,category:category,price:price,oldPrice:oldPrice,description:description,features:features,emoji:emoji,imageUrl:imageUrl,featured:featured,updatedAt:new Date().toISOString()};
   if(state.db){
     try{
-      if(state.editingProductId){ await state.db.collection('products').doc(state.editingProductId).update(pd); showToast('Actualizado.','success'); }
-      else{ pd.createdAt=firebase.firestore.FieldValue.serverTimestamp(); await state.db.collection('products').add(pd); showToast('Guardado.','success'); }
-    }catch(err){showToast('Error: '+err.message,'error');return;}
+      if(state.editingProductId){ await state.db.collection('products').doc(state.editingProductId).update(pd); showToast('Producto actualizado ✓','success'); }
+      else{ pd.createdAt=firebase.firestore.FieldValue.serverTimestamp(); await state.db.collection('products').add(pd); showToast('Producto guardado en Firebase ✓','success'); }
+    }catch(err){
+      showToast('Error al guardar: '+err.message,'error');
+      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Guardar Producto';}
+      return;
+    }
   } else {
-    if(state.editingProductId){ var idx=state.products.findIndex(function(x){return x.id===state.editingProductId;}); if(idx!==-1) state.products[idx]=Object.assign({},state.products[idx],pd); showToast('Actualizado.','success'); }
-    else{ pd.id='p_'+Date.now(); pd.createdAt=Date.now(); state.products.push(pd); showToast('Agregado.','success'); }
+    if(state.editingProductId){ var idx=state.products.findIndex(function(x){return x.id===state.editingProductId;}); if(idx!==-1) state.products[idx]=Object.assign({},state.products[idx],pd); showToast('Actualizado localmente ✓','success'); }
+    else{ pd.id='p_'+Date.now(); pd.createdAt=Date.now(); state.products.push(pd); showToast('Guardado localmente ✓','success'); }
     saveLocalProducts(); renderProducts(); renderAdminProductList();
   }
+  // Clear draft after successful save
+  localStorage.removeItem('vk_product_draft');
+  if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Guardar Producto';}
   hideProductForm();
 }
 
@@ -398,6 +418,51 @@ async function testFirebaseConnection(){
   finally{btn.disabled=false;btn.textContent='Probar Conexion';}
 }
 
+/* ─── AUTO-DRAFT ─── */
+var _draftTimer=null;
+function startDraftAutosave(){
+  if(_draftTimer) clearInterval(_draftTimer);
+  _draftTimer=setInterval(function(){
+    var form=document.getElementById('productFormContainer');
+    if(!form||form.style.display==='none') return;
+    var draft={
+      name:(document.getElementById('prodName')||{}).value||'',
+      category:(document.getElementById('prodCategory')||{}).value||'',
+      price:(document.getElementById('prodPrice')||{}).value||'',
+      oldPrice:(document.getElementById('prodOldPrice')||{}).value||'',
+      description:(document.getElementById('prodDesc')||{}).value||'',
+      features:(document.getElementById('prodFeatures')||{}).value||'',
+      emoji:(document.getElementById('prodEmoji')||{}).value||'',
+      imageUrl:(document.getElementById('prodImage')||{}).value||'',
+      featured:(document.getElementById('prodFeatured')||{}).checked||false
+    };
+    localStorage.setItem('vk_product_draft',JSON.stringify(draft));
+  },2000);
+}
+function loadDraftIfExists(){
+  var d=localStorage.getItem('vk_product_draft');
+  if(!d) return;
+  try{
+    var draft=JSON.parse(d);
+    if(!draft.name && !draft.category) return; // empty draft, skip
+    if(!confirm('Hay un borrador guardado. ¿Deseas recuperarlo?')){localStorage.removeItem('vk_product_draft');return;}
+    if(draft.name) document.getElementById('prodName').value=draft.name;
+    if(draft.category) document.getElementById('prodCategory').value=draft.category;
+    if(draft.price) document.getElementById('prodPrice').value=draft.price;
+    if(draft.oldPrice) document.getElementById('prodOldPrice').value=draft.oldPrice;
+    if(draft.description) document.getElementById('prodDesc').value=draft.description;
+    if(draft.features) document.getElementById('prodFeatures').value=draft.features;
+    if(draft.emoji) document.getElementById('prodEmoji').value=draft.emoji;
+    if(draft.featured) document.getElementById('prodFeatured').checked=draft.featured;
+    if(draft.imageUrl){
+      document.getElementById('prodImage').value=draft.imageUrl;
+      var imgEl=document.getElementById('prodImagePreviewImg'), imgPrev=document.getElementById('prodImagePreview');
+      if(imgEl&&imgPrev){imgEl.src=draft.imageUrl;imgPrev.style.display='flex';}
+    }
+    showToast('Borrador recuperado ✓','info');
+  }catch(e){localStorage.removeItem('vk_product_draft');}
+}
+
 function bindEvents() {
   document.getElementById('adminClose').addEventListener('click', closeAdmin);
   document.getElementById('adminOverlay').addEventListener('click',function(e){ if(e.target===document.getElementById('adminOverlay')) closeAdmin(); });
@@ -405,13 +470,13 @@ function bindEvents() {
   document.getElementById('adminLoginBtn').addEventListener('click',function(){
     var pw=document.getElementById('adminPassword').value;
     var code=(document.getElementById('adminTotpCode')?document.getElementById('adminTotpCode').value:'').trim();
-    if(pw!==state.settings.adminPassword){ showToast('Contrasena incorrecta','error'); document.getElementById('adminPassword').value=''; return; }
-    if(isTotpConfigured()&&!verifyTotp(getTotpSecret(),code)){ showToast('Codigo incorrecto o expirado','error'); if(document.getElementById('adminTotpCode')) document.getElementById('adminTotpCode').value=''; return; }
+    if(pw!==state.settings.adminPassword){ showToast('Contraseña incorrecta','error'); document.getElementById('adminPassword').value=''; return; }
+    if(isTotpConfigured()&&!verifyTotp(getTotpSecret(),code)){ showToast('Código incorrecto o expirado','error'); if(document.getElementById('adminTotpCode')) document.getElementById('adminTotpCode').value=''; return; }
     state.adminAuthenticated=true;
     document.getElementById('adminAuth').style.display='none'; document.getElementById('adminMain').style.display='block';
     updateFirebaseStatusUI(!!state.db);
     if(state.settings.firebaseConfig) document.getElementById('settingsFirebaseConfig').value=JSON.stringify(state.settings.firebaseConfig,null,2);
-    showToast('Acceso concedido.','success');
+    showToast('Acceso concedido ✓','success');
   });
 
   document.getElementById('adminPassword').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('adminLoginBtn').click(); });
@@ -419,23 +484,29 @@ function bindEvents() {
 
   var resetBtn=document.getElementById('resetTotpBtn');
   if(resetBtn) resetBtn.addEventListener('click',function(){
-    if(!confirm('Generar nuevo QR? Deberas volver a escanear con Authy.')) return;
-    var secret=generateTotpSecret(); showTotpSetup(secret); document.getElementById('totpSetupBtn')._pendingSecret=secret;
+    if(!confirm('¿Generar nuevo QR? Deberás volver a escanear con Authy o Google Authenticator.')) return;
+    // Remove old secret so setup flow triggers correctly
+    localStorage.removeItem('vk_totp_secret');
+    var secret=generateTotpSecret();
+    showTotpSetup(secret);
   });
 
   var setupBtn=document.getElementById('totpSetupBtn');
   var setupCodeInput=document.getElementById('totpSetupCode');
   if(setupBtn) setupBtn.addEventListener('click',function(){
-    var secret=setupBtn._pendingSecret, code=setupCodeInput.value.trim();
-    if(!secret) return;
+    var secret=setupBtn._pendingSecret;
+    var code=(setupCodeInput?setupCodeInput.value:'').replace(/\s/g,'');
+    if(!secret){showToast('Error: no hay secreto generado. Cierra y vuelve a intentarlo.','error');return;}
     if(code.length!==6){showToast('El código debe tener 6 dígitos','error');return;}
-    if(!verifyTotp(secret,code)){showToast('Codigo incorrecto. Revisa el QR.','error');return;}
-    saveTotpSecret(secret); showToast('Authenticator configurado.','success');
-    document.getElementById('adminTotpSetup').style.display='none'; document.getElementById('adminAuth').style.display='block';
+    if(!verifyTotp(secret,code)){showToast('Código incorrecto. Revisa el QR en tu app.','error');return;}
+    saveTotpSecret(secret);
+    showToast('¡Autenticador configurado correctamente! 🔐','success');
+    document.getElementById('adminTotpSetup').style.display='none';
+    document.getElementById('adminAuth').style.display='block';
     var tg=document.getElementById('totpCodeGroup'); if(tg) tg.style.display='block';
-    setupCodeInput.value='';
+    if(setupCodeInput) setupCodeInput.value='';
   });
-  if(setupCodeInput) setupCodeInput.addEventListener('keydown',function(e){if(e.key==='Enter')setupBtn.click();});
+  if(setupCodeInput) setupCodeInput.addEventListener('keydown',function(e){if(e.key==='Enter'&&setupBtn)setupBtn.click();});
 
   document.querySelectorAll('.admin-tab').forEach(function(tab){
     tab.addEventListener('click',function(){
@@ -445,8 +516,14 @@ function bindEvents() {
     });
   });
 
-  document.getElementById('addProductBtn').addEventListener('click',function(){showProductForm();});
-  document.getElementById('cancelProductBtn').addEventListener('click', hideProductForm);
+  document.getElementById('addProductBtn').addEventListener('click',function(){
+    showProductForm();
+    setTimeout(function(){ loadDraftIfExists(); startDraftAutosave(); },100);
+  });
+  document.getElementById('cancelProductBtn').addEventListener('click',function(){
+    if(_draftTimer){clearInterval(_draftTimer);_draftTimer=null;}
+    hideProductForm();
+  });
   document.getElementById('productForm').addEventListener('submit', saveProduct);
   document.getElementById('settingsForm').addEventListener('submit', saveSettingsForm);
   document.getElementById('testFirebaseBtn').addEventListener('click', testFirebaseConnection);
@@ -462,31 +539,61 @@ function bindEvents() {
   if(si){ si.addEventListener('input',function(){ state.searchQuery=si.value; sc.style.display=si.value?'flex':'none'; state.productPage=1; var af=document.querySelector('.filter-btn.active'); renderProducts(af?af.dataset.category:'all'); }); }
   if(sc){ sc.addEventListener('click',function(){ si.value=''; state.searchQuery=''; sc.style.display='none'; si.focus(); state.productPage=1; var af=document.querySelector('.filter-btn.active'); renderProducts(af?af.dataset.category:'all'); }); }
 
-  var imgIn=document.getElementById('prodImage'), imgPrev=document.getElementById('prodImagePreview'), imgEl=document.getElementById('prodImagePreviewImg'), clrBtn=document.getElementById('clearImageBtn'), imgFile=document.getElementById('prodImageFile');
+  /* ─── IMAGE UPLOAD (comprimida para Firestore) ─── */
+  var imgIn=document.getElementById('prodImage'),
+      imgPrev=document.getElementById('prodImagePreview'),
+      imgEl=document.getElementById('prodImagePreviewImg'),
+      clrBtn=document.getElementById('clearImageBtn'),
+      imgFile=document.getElementById('prodImageFile');
+
   if(imgFile&&imgPrev&&imgEl&&imgIn){
-    imgFile.addEventListener('change',function(e){ 
-      var f=e.target.files[0]; 
-      if(!f){imgIn.value='';imgPrev.style.display='none';imgEl.src='';return;} 
+    imgFile.addEventListener('change',function(e){
+      var f=e.target.files[0];
+      if(!f){imgIn.value='';imgPrev.style.display='none';imgEl.src='';return;}
+      // Show loading state
+      imgPrev.style.display='flex';
+      imgEl.src='';
+      imgEl.alt='Procesando imagen…';
       var r=new FileReader();
       r.onload=function(evt){
         var img=new Image();
         img.onload=function(){
           var canvas=document.createElement('canvas');
-          var mw=400,mh=400,w=img.width,h=img.height;
-          if(w>h){if(w>mw){h*=mw/w;w=mw;}}else{if(h>mh){w*=mh/h;h=mh;}}
-          canvas.width=w;canvas.height=h;
+          // Max 600px on longest side, JPEG 60% quality → ~30-80KB ideal for Firestore
+          var MAX=600, w=img.width, h=img.height;
+          if(w>h){ if(w>MAX){h=Math.round(h*(MAX/w));w=MAX;} }
+          else { if(h>MAX){w=Math.round(w*(MAX/h));h=MAX;} }
+          canvas.width=w; canvas.height=h;
           var ctx=canvas.getContext('2d');
+          ctx.fillStyle='#1a1a1a'; // dark bg for transparent PNGs
+          ctx.fillRect(0,0,w,h);
           ctx.drawImage(img,0,0,w,h);
-          var b64=canvas.toDataURL('image/jpeg',0.8);
-          imgIn.value=b64; imgEl.src=b64; imgPrev.style.display='flex';
+          var b64=canvas.toDataURL('image/jpeg',0.60);
+          // Warn if still too large (Firestore doc limit ~1MB)
+          if(b64.length>900000){
+            showToast('Imagen muy grande. Usa una foto más pequeña.','error');
+            imgIn.value=''; imgPrev.style.display='none'; imgEl.src=''; imgFile.value='';
+            return;
+          }
+          imgIn.value=b64; imgEl.src=b64; imgEl.alt='Vista previa';
+          imgPrev.style.display='flex';
+          showToast('Imagen lista ('+Math.round(b64.length/1024)+'KB) ✓','success');
         };
+        img.onerror=function(){showToast('No se pudo leer la imagen','error');};
         img.src=evt.target.result;
       };
       r.readAsDataURL(f);
     });
     imgEl.addEventListener('error',function(){imgPrev.style.display='none';});
   }
-  if(clrBtn&&imgIn&&imgPrev&&imgEl){ clrBtn.addEventListener('click',function(){imgIn.value='';if(imgFile)imgFile.value='';imgPrev.style.display='none';imgEl.src='';}); }
+  if(clrBtn&&imgIn&&imgPrev&&imgEl){
+    clrBtn.addEventListener('click',function(){
+      imgIn.value='';
+      if(imgFile) imgFile.value='';
+      imgPrev.style.display='none';
+      imgEl.src='';
+    });
+  }
 }
 
 function showToast(msg, type) {
