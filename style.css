@@ -1393,4 +1393,72 @@ a.footer-contact-item:hover { color: var(--orange); }
 .admin-product-thumb img {
   width: 100%; height: 100%; object-fit: cover;
 }
-.admin-product-thumb span { font-size: 1.4rem; }
+.admin-product-thumb span { font-size: 1.4rem; }
+
+/* ============================================================
+   CLOUDINARY DND UPLOAD ZONE
+   ============================================================ */
+.upload-zone {
+  border: 2px dashed var(--brd-sub);
+  border-radius: 12px;
+  padding: 32px 20px;
+  text-align: center;
+  background: rgba(255,255,255,0.02);
+  transition: all var(--t1);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.upload-zone:hover {
+  border-color: var(--orange);
+  background: rgba(255,85,0,0.05);
+}
+.upload-zone.dragover {
+  border-color: var(--orange);
+  background: rgba(255,85,0,0.1);
+  box-shadow: inset 0 0 0 2px rgba(255,85,0,0.2);
+}
+.upload-zone.uploading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+.upload-icon {
+  color: var(--tx-3);
+  transition: color var(--t1);
+}
+.upload-zone:hover .upload-icon,
+.upload-zone.dragover .upload-icon {
+  color: var(--orange);
+}
+.upload-text {
+  font-size: 0.9rem;
+  color: var(--tx-2);
+}
+.upload-text strong {
+  color: var(--orange);
+}
+.upload-progress-container {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 12px;
+  display: none;
+}
+.upload-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--g-fire);
+  transition: width 0.2s ease;
+}
+.upload-file-input {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
