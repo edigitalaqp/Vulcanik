@@ -64,14 +64,14 @@
 
           <div class="hero-badge">
             <span class="badge-dot"></span>
-            Servicios Digitales Premium
+            Servicios Digitales Peru
           </div>
           <h1 class="hero-title">
-            Potencia tu mundo<br />
-            <span class="gradient-text">digital con Vulkanic</span>
+            Potencia tu Mundo<br />
+            <span class="gradient-text">Digital con Vulkanic</span>
           </h1>
           <p class="hero-subtitle">
-            Licencias originales, software premium y servicios digitales al mejor precio del Perú. Compra 100% segura y
+            Licencias Originales, Software y Servicios Digitales al mejor precio del Perú-Compra 100% segura y
             entrega inmediata.
           </p>
           <div class="hero-ctas">
@@ -204,6 +204,7 @@
             <button class="filter-btn active" data-category="all">Todos</button>
           </div>
           <div class="products-grid" id="productsGrid"></div>
+          <div class="products-pagination" id="productsPagination"></div>
           <div class="empty-state" id="emptyState" style="display:none;">
             <div class="empty-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
@@ -450,6 +451,30 @@
           </svg>
         </button>
       </div>
+
+      <!-- PASO 1: Configurar TOTP (primera vez) -->
+      <div class="admin-auth" id="adminTotpSetup" style="display:none;">
+        <div class="auth-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" width="48" height="48">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+        </div>
+        <h3>Configurar Autenticación</h3>
+        <p>Primera vez: escanea el QR con <strong>Authy</strong> o <strong>Google Authenticator</strong></p>
+        <div id="totpQrContainer" style="margin:16px auto;display:flex;justify-content:center;"></div>
+        <small style="color:var(--tx-3);display:block;margin-bottom:12px;word-break:break-all;"
+          id="totpSecretDisplay"></small>
+        <div class="form-group">
+          <label for="totpSetupCode">Ingresa el código de 6 dígitos para confirmar</label>
+          <input type="text" id="totpSetupCode" placeholder="123456" maxlength="6" inputmode="numeric"
+            autocomplete="one-time-code" />
+        </div>
+        <button class="btn btn-primary btn-full" id="totpSetupBtn">Confirmar y Activar</button>
+      </div>
+
+      <!-- PASO 2: Login normal -->
       <div class="admin-auth" id="adminAuth">
         <div class="auth-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
@@ -459,11 +484,20 @@
           </svg>
         </div>
         <h3>Acceso Seguro</h3>
-        <p>Ingresa la contraseña para administrar los productos</p>
+        <p>Ingresa tu contraseña y código de autenticación</p>
         <div class="form-group">
+          <label for="adminPassword">Contraseña</label>
           <input type="password" id="adminPassword" placeholder="Contraseña" />
         </div>
+        <div class="form-group" id="totpCodeGroup">
+          <label for="adminTotpCode">Código Authy / Authenticator</label>
+          <input type="text" id="adminTotpCode" placeholder="000000" maxlength="6" inputmode="numeric"
+            autocomplete="one-time-code" />
+          <small style="color:var(--tx-3);">Código temporal de 6 dígitos de tu app</small>
+        </div>
         <button class="btn btn-primary btn-full" id="adminLoginBtn">Ingresar</button>
+        <button class="btn btn-ghost btn-full" id="resetTotpBtn" style="margin-top:8px;font-size:.78rem;">¿Perdiste el
+          acceso? Reconfigurar Authenticator</button>
       </div>
       <div class="admin-main" id="adminMain" style="display:none;">
         <div class="admin-tabs">
@@ -526,7 +560,22 @@
                     placeholder="Activación permanente&#10;Para 1 PC&#10;Todas las ediciones&#10;Soporte incluido"></textarea>
                 </div>
                 <div class="form-group form-full">
-                  <label for="prodEmoji">Ícono del producto (emoji)</label>
+                  <label for="prodImage">URL de imagen del producto</label>
+                  <input type="url" id="prodImage" placeholder="https://ejemplo.com/imagen.jpg" />
+                  <div id="prodImagePreview" class="img-preview" style="display:none;">
+                    <img id="prodImagePreviewImg" src="" alt="Vista previa" />
+                    <button type="button" id="clearImageBtn" class="img-preview-clear" aria-label="Quitar imagen">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                  <small>Si no pones imagen, se usará un emoji de ícono</small>
+                </div>
+                <div class="form-group form-full">
+                  <label for="prodEmoji">Ícono del producto (emoji, solo si no hay imagen)</label>
                   <input type="text" id="prodEmoji" placeholder="💻" maxlength="4" />
                 </div>
                 <div class="form-group form-full">
@@ -595,6 +644,8 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/otpauth@9.3.6/dist/otpauth.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="app.js"></script>
 </body>
 
