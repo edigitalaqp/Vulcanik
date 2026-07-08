@@ -213,24 +213,37 @@ function loadSampleProducts() {
 
 function initNavigation() {
   const toggle = document.getElementById('navToggle');
-  const links = document.getElementById('navLinks');
-  
-  // Mobile menu toggle
-  toggle.addEventListener('click', () => {
-    toggle.classList.toggle('open');
-    links.classList.toggle('open');
+  const links  = document.getElementById('navLinks');
+
+  // Mobile hamburger toggle
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = toggle.classList.toggle('open');
+    links.classList.toggle('open', isOpen);
+    toggle.setAttribute('aria-expanded', isOpen);
   });
 
-  // Handle all page navigation buttons
+  // Close menu when clicking anywhere outside the navbar
+  document.addEventListener('click', (e) => {
+    const navbar = document.getElementById('navbar');
+    if (navbar && !navbar.contains(e.target)) {
+      toggle.classList.remove('open');
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Handle all page navigation buttons (data-page)
   document.querySelectorAll('[data-page]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       const targetPage = btn.getAttribute('data-page');
       navigateToPage(targetPage);
-      
-      // Close mobile menu if open
+
+      // Always close mobile menu after nav
       toggle.classList.remove('open');
       links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
     });
   });
 }
