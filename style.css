@@ -91,7 +91,7 @@ p  { color: var(--tx-2); }
   height: var(--nav-h);
   z-index: 900;
   /* Mismo color que el footer */
-  background: var(--bg-card);
+  background: #9b9b9b;
   border-bottom: 1px solid var(--brd-sub);
 }
 
@@ -937,7 +937,7 @@ p  { color: var(--tx-2); }
    FOOTER — 3 COLUMNAS
    ============================================================ */
 .footer {
-  background: var(--bg-card);
+  background: #9b9b9b;
   border-top: 1px solid var(--brd-sub);
   padding: 48px 20px 24px;
   position: relative; z-index: 1;
