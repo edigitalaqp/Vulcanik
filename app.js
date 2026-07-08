@@ -30,6 +30,13 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+window.addEventListener('hashchange', function() {
+  if (window.location.hash === '#ownerVulkanic') {
+    history.replaceState(null, '', window.location.pathname);
+    openAdmin();
+  }
+});
+
 function loadSettingsFromStorage() {
   var s = localStorage.getItem('vk_settings');
   if (s) { try { state.settings = Object.assign({}, state.settings, JSON.parse(s)); } catch(e){} }
