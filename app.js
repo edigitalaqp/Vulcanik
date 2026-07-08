@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSettingsFromStorage();
   initNavigation();
   initLavaParticles();
+  initProductsParticles();
   initContactParticles();
   bindEvents();
   updateWhatsAppLinks();
@@ -227,6 +228,20 @@ function initContactParticles() {
     const size = Math.random() * 4 + 2;
     const color = colors[Math.floor(Math.random() * colors.length)];
     p.style.cssText = `width:${size}px;height:${size}px;background:${color};box-shadow:0 0 ${size*2}px ${color};left:${Math.random()*100}%;animation-duration:${10+Math.random()*10}s;animation-delay:${(i*0.5)%10}s;opacity:.3;`;
+    container.appendChild(p);
+  }
+}
+
+function initProductsParticles() {
+  const container = document.getElementById('productsParticles');
+  if (!container) return;
+  const colors = ['#ff5500', '#ffaa00', '#cc3300'];
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'lava-particle';
+    const size = Math.random() * 4 + 2;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    p.style.cssText = `width:${size}px;height:${size}px;background:${color};box-shadow:0 0 ${size*2}px ${color};left:${Math.random()*100}%;animation-duration:${10+Math.random()*10}s;animation-delay:${(i*0.5)%10}s;opacity:.25;`;
     container.appendChild(p);
   }
 }
