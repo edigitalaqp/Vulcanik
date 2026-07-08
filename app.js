@@ -256,14 +256,14 @@ function isTotpConfigured(){ return !!getTotpSecret(); }
 
 function generateTotpSecret(){
   var chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', secret='';
-  var arr=new Uint8Array(20); crypto.getRandomValues(arr);
+  var arr=new Uint8Array(32); crypto.getRandomValues(arr);
   arr.forEach(function(b){secret+=chars[b%32];}); return secret;
 }
 
 function verifyTotp(secret, token) {
   try {
     var totp=new OTPAuth.TOTP({issuer:'Vulkanic',label:'Admin',algorithm:'SHA1',digits:6,period:30,secret:OTPAuth.Secret.fromBase32(secret)});
-    return totp.validate({token:token.replace(/\s/g,''),window:4})!==null;
+    return totp.validate({token:token.replace(/\s/g,''),window:10})!==null;
   } catch(e){ return false; }
 }
 
@@ -424,15 +424,18 @@ function bindEvents() {
   });
 
   var setupBtn=document.getElementById('totpSetupBtn');
+  var setupCodeInput=document.getElementById('totpSetupCode');
   if(setupBtn) setupBtn.addEventListener('click',function(){
-    var secret=setupBtn._pendingSecret, code=document.getElementById('totpSetupCode').value.trim();
+    var secret=setupBtn._pendingSecret, code=setupCodeInput.value.trim();
     if(!secret) return;
+    if(code.length!==6){showToast('El código debe tener 6 dígitos','error');return;}
     if(!verifyTotp(secret,code)){showToast('Codigo incorrecto. Revisa el QR.','error');return;}
     saveTotpSecret(secret); showToast('Authenticator configurado.','success');
     document.getElementById('adminTotpSetup').style.display='none'; document.getElementById('adminAuth').style.display='block';
     var tg=document.getElementById('totpCodeGroup'); if(tg) tg.style.display='block';
-    document.getElementById('totpSetupCode').value='';
+    setupCodeInput.value='';
   });
+  if(setupCodeInput) setupCodeInput.addEventListener('keydown',function(e){if(e.key==='Enter')setupBtn.click();});
 
   document.querySelectorAll('.admin-tab').forEach(function(tab){
     tab.addEventListener('click',function(){
