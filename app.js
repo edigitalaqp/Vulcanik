@@ -4,11 +4,10 @@
 
 var state = {
   products: [],
-  settings: { whatsapp: '32466458677', storeName: 'Vulkanic Soft Peru', adminPassword: 'vulkanic2025', firebaseConfig: null, cloudinaryName: '', cloudinaryPreset: '' },
+  settings: { whatsapp: '32466458677', storeName: 'Vulkanic Soft Peru', adminPassword: 'vulkanic2025', supabaseUrl: '', supabaseKey: '', cloudinaryName: '', cloudinaryPreset: '' },
   adminAuthenticated: false,
   editingProductId: null,
-  db: null,
-  unsubscribe: null,
+  supabase: null,
   currentPage: 'inicio',
   searchQuery: '',
   productPage: 1,
@@ -23,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initContactParticles();
   bindEvents();
   updateWhatsAppLinks();
-  initFirebase();
+  initSupabase();
   if (window.location.hash === '#ownerVulkanic') {
     history.replaceState(null, '', window.location.pathname);
     openAdmin();
@@ -51,34 +50,31 @@ function loadLocalProducts() {
 }
 function saveLocalProducts() { localStorage.setItem('vk_products', JSON.stringify(state.products)); }
 
-function initFirebase(config) {
-  var cfg = config || state.settings.firebaseConfig;
-  if (!cfg) { loadLocalProducts(); updateFirebaseStatusUI(false); return; }
+function initSupabase(url, key) {
+  var u = url || state.settings.supabaseUrl;
+  var k = key || state.settings.supabaseKey;
+  if (!u || !k) { loadLocalProducts(); updateFirebaseStatusUI(false); return; }
   try {
-    if (firebase.apps.length > 0) firebase.apps.forEach(function (a) { a.delete(); });
-    firebase.initializeApp(cfg);
-    var db = firebase.firestore();
-    state.db = db;
-    startFirestoreListener(db);
+    state.supabase = supabase.createClient(u, k);
+    loadSupabaseProducts();
     updateFirebaseStatusUI(true);
   } catch (err) {
     updateFirebaseStatusUI(false);
-    showToast('Error Firebase. Modo local.', 'error');
+    showToast('Error Supabase. Modo local.', 'error');
     loadLocalProducts();
   }
 }
 
-function startFirestoreListener(db) {
-  if (state.unsubscribe) state.unsubscribe();
-  state.unsubscribe = db.collection('products').orderBy('createdAt', 'asc').onSnapshot(
-    function (snapshot) {
-      state.products = snapshot.docs.map(function (doc) { return Object.assign({ id: doc.id }, doc.data()); });
-      renderProducts(); renderAdminProductList();
-    },
-    function (err) {
-      showToast('Error Firestore.', 'error'); state.db = null; updateFirebaseStatusUI(false); loadLocalProducts();
-    }
-  );
+async function loadSupabaseProducts() {
+  if (!state.supabase) return;
+  try {
+    var { data, error } = await state.supabase.from('products').select('*').order('createdAt', { ascending: true });
+    if (error) throw error;
+    state.products = data || [];
+    renderProducts(); renderAdminProductList();
+  } catch (err) {
+    showToast('Error cargando Supabase.', 'error'); state.supabase = null; updateFirebaseStatusUI(false); loadLocalProducts();
+  }
 }
 
 function updateFirebaseStatusUI(connected) {
@@ -293,15 +289,16 @@ function openAdmin() {
   document.getElementById('settingsStoreName').value = state.settings.storeName || '';
   document.getElementById('settingsCloudinaryName').value = state.settings.cloudinaryName || '';
   document.getElementById('settingsCloudinaryPreset').value = state.settings.cloudinaryPreset || '';
-  if (state.settings.firebaseConfig) document.getElementById('settingsFirebaseConfig').value = JSON.stringify(state.settings.firebaseConfig, null, 2);
-  updateFirebaseStatusUI(!!state.db);
+  document.getElementById('settingsSupabaseUrl').value = state.settings.supabaseUrl || '';
+  document.getElementById('settingsSupabaseKey').value = state.settings.supabaseKey || '';
+  updateFirebaseStatusUI(!!state.supabase);
 }
 
 function closeAdmin() { document.getElementById('adminOverlay').classList.remove('open'); }
 
 function renderAdminProductList() {
   var list = document.getElementById('adminProductsList'); if (!list) return;
-  var mode = state.db ? 'Firebase' : 'Local';
+  var mode = state.supabase ? 'Supabase' : 'Local';
   if (state.products.length === 0) { list.innerHTML = '<div class="admin-mode-badge">' + mode + '</div><p style="color:var(--tx-3);text-align:center;padding:24px">No hay productos.</p>'; return; }
   list.innerHTML = '<div class="admin-mode-badge">' + mode + '</div>' + state.products.map(function (p) {
     return '<div class="admin-product-item" id="admin-item-' + p.id + '"><div class="admin-product-thumb">' + (p.imageUrl ? '<img src="' + escAttr(p.imageUrl) + '" alt="' + escAttr(p.name) + '" onerror="this.style.display=\'none\'"/>' : '<span>' + (p.emoji || '📦') + '</span>') + '</div><div class="admin-product-info"><div class="admin-product-name">' + escHtml(p.name) + '</div><div class="admin-product-cat">' + escHtml(p.category) + ' · S/ ' + Number(p.price).toFixed(2) + '</div></div><div class="admin-product-actions"><button type="button" class="btn-icon" onclick="editProduct(\'' + p.id + '\')" title="Editar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button type="button" class="btn-icon danger" onclick="deleteProduct(\'' + p.id + '\')" title="Eliminar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button></div></div>';
@@ -341,7 +338,7 @@ window.editProduct = function (id) { var p = state.products.find(function (x) { 
 
 window.deleteProduct = async function (id) {
   if (!confirm('Eliminar este producto?')) return;
-  if (state.db) { try { await state.db.collection('products').doc(id).delete(); showToast('Producto eliminado.', 'info'); } catch (err) { showToast('Error: ' + err.message, 'error'); } }
+  if (state.supabase) { try { await state.supabase.from('products').delete().eq('id', id); state.products = state.products.filter(function (x) { return x.id !== id; }); renderProducts(); renderAdminProductList(); showToast('Producto eliminado.', 'info'); } catch (err) { showToast('Error: ' + err.message, 'error'); } }
   else { state.products = state.products.filter(function (x) { return x.id !== id; }); saveLocalProducts(); renderProducts(); renderAdminProductList(); showToast('Eliminado', 'info'); }
 };
 
@@ -358,11 +355,15 @@ async function saveProduct(e) {
   var featured = document.getElementById('prodFeatured').checked;
   var imageUrl = (document.getElementById('prodImage') ? document.getElementById('prodImage').value.trim() : '');
   if (!name || !category || isNaN(price)) { showToast('Completa los campos requeridos (*)', 'error'); return; }
-  var pd = { name: name, category: category, price: price, oldPrice: oldPrice, description: description, features: features, emoji: emoji, imageUrl: imageUrl, featured: featured, updatedAt: new Date().toISOString() };
-  if (state.db) {
+  var pd = { name: name, category: category, price: price, oldPrice: oldPrice, description: description, features: features, emoji: emoji, imageUrl: imageUrl, featured: featured };
+  if (state.supabase) {
     try {
-      if (state.editingProductId) { await state.db.collection('products').doc(state.editingProductId).update(pd); showToast('Actualizado.', 'success'); }
-      else { pd.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await state.db.collection('products').add(pd); showToast('Guardado.', 'success'); }
+      if (state.editingProductId) { pd.id = state.editingProductId; }
+      else { pd.id = 'p_' + Date.now(); pd.createdAt = Date.now(); }
+      var { error } = await state.supabase.from('products').upsert(pd);
+      if (error) throw error;
+      showToast('Guardado.', 'success');
+      loadSupabaseProducts();
     } catch (err) { showToast('Error: ' + err.message, 'error'); return; }
   } else {
     if (state.editingProductId) { var idx = state.products.findIndex(function (x) { return x.id === state.editingProductId; }); if (idx !== -1) state.products[idx] = Object.assign({}, state.products[idx], pd); showToast('Actualizado.', 'success'); }
@@ -377,28 +378,30 @@ function saveSettingsForm(e) {
   var wa = document.getElementById('settingsWhatsapp').value.trim();
   var sn = document.getElementById('settingsStoreName').value.trim();
   var pw = document.getElementById('settingsPassword').value.trim();
-  var fb = document.getElementById('settingsFirebaseConfig').value.trim();
   var cName = document.getElementById('settingsCloudinaryName').value.trim();
   var cPreset = document.getElementById('settingsCloudinaryPreset').value.trim();
+  var su = document.getElementById('settingsSupabaseUrl').value.trim();
+  var sk = document.getElementById('settingsSupabaseKey').value.trim();
   if (!wa) { showToast('WhatsApp requerido', 'error'); return; }
   state.settings.whatsapp = wa; if (sn) state.settings.storeName = sn; if (pw) state.settings.adminPassword = pw;
   state.settings.cloudinaryName = cName; state.settings.cloudinaryPreset = cPreset;
-  if (fb) { try { var cl = fb.replace(/^const\s+\w+\s*=\s*/, '').replace(/;?\s*$/, ''); state.settings.firebaseConfig = JSON.parse(cl); } catch (err) { showToast('Firebase JSON invalido', 'error'); return; } }
+  state.settings.supabaseUrl = su; state.settings.supabaseKey = sk;
   saveSettingsToStorage(); updateWhatsAppLinks();
-  if (state.settings.firebaseConfig) initFirebase(state.settings.firebaseConfig);
+  if (state.settings.supabaseUrl && state.settings.supabaseKey) initSupabase(state.settings.supabaseUrl, state.settings.supabaseKey);
   showToast('Configuracion guardada.', 'success'); document.getElementById('settingsPassword').value = '';
 }
 
 async function testFirebaseConnection() {
-  var btn = document.getElementById('testFirebaseBtn'), fb = document.getElementById('settingsFirebaseConfig').value.trim();
-  if (!fb) { showToast('Pega tu Firebase Config', 'error'); return; }
+  var btn = document.getElementById('testFirebaseBtn');
+  var su = document.getElementById('settingsSupabaseUrl').value.trim();
+  var sk = document.getElementById('settingsSupabaseKey').value.trim();
+  if (!su || !sk) { showToast('Falta URL o Key de Supabase', 'error'); return; }
   btn.disabled = true; btn.textContent = 'Probando...';
   try {
-    var cl = fb.replace(/^const\s+\w+\s*=\s*/, '').replace(/;?\s*$/, ''), cfg = JSON.parse(cl);
-    if (firebase.apps.length > 0) await Promise.all(firebase.apps.map(function (a) { return a.delete(); }));
-    firebase.initializeApp(cfg); var db = firebase.firestore();
-    await db.collection('products').limit(1).get();
-    state.db = db; state.settings.firebaseConfig = cfg; saveSettingsToStorage(); startFirestoreListener(db); updateFirebaseStatusUI(true); showToast('Firebase conectado.', 'success');
+    var s = supabase.createClient(su, sk);
+    var { data, error } = await s.from('products').select('id').limit(1);
+    if (error) throw error;
+    state.supabase = s; state.settings.supabaseUrl = su; state.settings.supabaseKey = sk; saveSettingsToStorage(); loadSupabaseProducts(); updateFirebaseStatusUI(true); showToast('Supabase conectado.', 'success');
   } catch (err) { updateFirebaseStatusUI(false); showToast('Error: ' + err.message, 'error'); }
   finally { btn.disabled = false; btn.textContent = 'Probar Conexion'; }
 }
@@ -414,8 +417,7 @@ function bindEvents() {
     if (isTotpConfigured() && !verifyTotp(getTotpSecret(), code)) { showToast('Codigo incorrecto o expirado', 'error'); if (document.getElementById('adminTotpCode')) document.getElementById('adminTotpCode').value = ''; return; }
     state.adminAuthenticated = true;
     document.getElementById('adminAuth').style.display = 'none'; document.getElementById('adminMain').style.display = 'block';
-    updateFirebaseStatusUI(!!state.db);
-    if (state.settings.firebaseConfig) document.getElementById('settingsFirebaseConfig').value = JSON.stringify(state.settings.firebaseConfig, null, 2);
+    updateFirebaseStatusUI(!!state.supabase);
     showToast('Acceso concedido.', 'success');
   });
 

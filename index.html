@@ -643,28 +643,35 @@
                 <input type="text" id="settingsCloudinaryPreset" placeholder="Ej: vulkanic_imagenes" />
               </div>
             </div>
-              <div class="firebase-config-header">
-                <div class="firebase-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round" width="28" height="28">
-                    <path d="M4 19V5a2 2 0 012-2h8.5L20 8.5V19a2 2 0 01-2 2H6a2 2 0 01-2-2z" />
-                    <polyline points="14 3 14 9 20 9" />
+
+            <!-- SUPABASE CONFIG -->
+            <div class="firebase-config-section" style="margin-top:24px;">
+              <div class="firebase-config-header" style="margin-bottom:12px;">
+                <div class="firebase-icon" style="background: rgba(62, 207, 142, 0.1); color: #3ECF8E;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="28" height="28">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path d="M12 8v8" />
+                    <path d="M8 12h8" />
                   </svg>
                 </div>
                 <div>
-                  <h4>Firebase Firestore</h4>
-                  <p>Base de datos en la nube para persistir los productos</p>
-                </div>
-                <div class="firebase-status" id="firebaseStatus">
-                  <span class="status-dot" id="firebaseStatusDot"></span>
-                  <span id="firebaseStatusText">Sin conectar</span>
+                  <h4 style="margin: 0; color: var(--tx-1);">Base de Datos (Supabase)</h4>
+                  <p style="margin: 4px 0 0 0; color: var(--tx-3); font-size: .85rem;">Conexión a tu nube permanente</p>
                 </div>
               </div>
               <div class="form-group">
-                <label for="settingsFirebaseConfig">Firebase Config (objeto JSON)</label>
-                <textarea id="settingsFirebaseConfig" rows="7"
-                  placeholder='{"apiKey":"AIza...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
-                <small>Copia el objeto <code>firebaseConfig</code> de tu consola Firebase</small>
+                <label for="settingsSupabaseUrl">Project URL</label>
+                <input type="text" id="settingsSupabaseUrl" placeholder="https://xyz.supabase.co" />
+              </div>
+              <div class="form-group">
+                <label for="settingsSupabaseKey">Anon Public Key</label>
+                <input type="password" id="settingsSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsIn..." />
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+                <div class="firebase-status">
+                  <div class="status-dot" id="firebaseStatusDot"></div>
+                  <span id="firebaseStatusText">Sin conectar</span>
+                </div>
               </div>
               <button type="button" class="btn btn-ghost" id="testFirebaseBtn" style="margin-bottom:12px;">Probar
                 Conexión</button>
@@ -679,8 +686,7 @@
   <!-- TOAST -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/otpauth@9.3.6/dist/otpauth.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="app.js"></script>
