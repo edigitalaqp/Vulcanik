@@ -12,27 +12,27 @@
 }
 
 :root {
-  /* Color Palette - NARANJA/FUEGO + GRISES NEUTROS (sin azul) */
+  /* Color Palette */
   --primary: #ff5500;
   --primary-light: #ff7733;
   --primary-dark: #cc3300;
   --accent: #ffaa00;
   --accent-light: #ffcc44;
-  --bg-dark:   #0d0d0d;
-  --bg-card:   #1a1a1a;
-  --bg-card2:  #1e1e1e;
-  --surface:   #222222;
-  --surface2:  #2a2a2a;
+  --bg-dark: #0a0a0f;
+  --bg-card: #111118;
+  --bg-card2: #15151e;
+  --surface: #1c1c28;
+  --surface2: #242436;
   --border: rgba(255, 85, 0, 0.2);
   --border-subtle: rgba(255, 255, 255, 0.07);
-  --text-primary: #f0f0ee;
-  --text-secondary: #a0a09e;
-  --text-muted: #666660;
+  --text-primary: #f0f0f8;
+  --text-secondary: #a0a0bc;
+  --text-muted: #606078;
   --white: #ffffff;
 
   /* Gradients */
   --gradient-fire: linear-gradient(135deg, #ff5500, #ffaa00);
-  --gradient-dark: linear-gradient(135deg, #0d0d0d 0%, #1a0800 100%);
+  --gradient-dark: linear-gradient(135deg, #0a0a0f 0%, #1a0a00 100%);
   --gradient-glow: radial-gradient(ellipse at center, rgba(255, 85, 0, 0.15) 0%, transparent 70%);
 
   /* Shadows */
@@ -54,7 +54,7 @@ html {
 }
 
 body {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Outfit', sans-serif;
   background: var(--bg-dark);
   color: var(--text-primary);
   overflow-x: hidden;
@@ -66,7 +66,7 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-weight: 700;
   line-height: 1.2;
 }
@@ -110,15 +110,9 @@ p {
 }
 
 .navbar.scrolled {
-  background: rgba(20, 20, 20, 0.96);
+  background: rgba(10, 10, 15, 0.92);
   backdrop-filter: blur(20px);
   box-shadow: 0 1px 0 var(--border), 0 4px 24px rgba(0, 0, 0, 0.5);
-}
-
-/* Estado siempre visible (SPA sin scroll) */
-.navbar {
-  background: #1c1c1c;
-  box-shadow: 0 1px 0 rgba(255,255,255,.06);
 }
 
 .nav-container {
@@ -145,22 +139,6 @@ p {
   height: 38px;
   object-fit: contain;
   border-radius: 8px;
-  /* Efecto glow en logo */
-  filter: drop-shadow(0 0 6px rgba(255, 85, 0, 0.5));
-  animation: logoPulse 3s ease-in-out infinite;
-  transition: transform var(--t-med), filter var(--t-med);
-}
-
-.logo-img:hover,
-.nav-logo:hover .logo-img {
-  transform: scale(1.1) rotate(-4deg);
-  filter: drop-shadow(0 0 14px rgba(255, 170, 0, 0.8));
-  animation: none;
-}
-
-@keyframes logoPulse {
-  0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 85, 0, 0.45)); }
-  50%       { filter: drop-shadow(0 0 14px rgba(255, 170, 0, 0.75)); }
 }
 
 .logo-text {
@@ -945,7 +923,7 @@ p {
   border-radius: 10px;
   padding: 12px 16px;
   color: var(--text-primary);
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 0.95rem;
   transition: border-color var(--t-fast), box-shadow var(--t-fast);
   outline: none;
@@ -979,8 +957,8 @@ p {
    FOOTER
    ============================================ */
 .footer {
-  background: #1c1c1c;
-  border-top: 1px solid rgba(255,255,255,.06);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-subtle);
   padding: 48px 24px 24px;
 }
 
