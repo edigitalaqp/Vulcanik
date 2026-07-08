@@ -1,5 +1,5 @@
 /* ============================================
-   VULKANIC SUR PERU – APP LOGIC
+   VULKANIC SOFT PERU – APP LOGIC
    Firebase Firestore + localStorage fallback
    ============================================ */
 
@@ -9,27 +9,29 @@ let state = {
   products: [],
   settings: {
     whatsapp: '51987654321',
-    storeName: 'Vulkanic Sur Peru',
+    storeName: 'Vulkanic Soft Peru',
     adminPassword: 'vulkanic2025',
     firebaseConfig: null
   },
   adminAuthenticated: false,
   editingProductId: null,
   db: null,           // Firestore instance
-  unsubscribe: null   // Real-time listener
+  unsubscribe: null,  // Real-time listener
+  currentPage: 'inicio'
 };
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSettingsFromStorage();
-  initNavbar();
+  initNavigation();
   initLavaParticles();
+  initContactParticles();
   bindEvents();
   updateWhatsAppLinks();
   initFirebase();
 
-  // Open admin if URL contains ?admin=1
+  // Open admin si URL contains ?admin=1
   if (new URLSearchParams(window.location.search).get('admin') === '1') {
     openAdmin();
   }
@@ -207,51 +209,72 @@ function loadSampleProducts() {
   renderAdminProductList();
 }
 
-// ─── NAVBAR ──────────────────────────────────────────────────────────────────
+// ─── NAVIGATION SYSTEM (PAGES) ──────────────────────────────────────────────
 
-function initNavbar() {
-  const navbar = document.getElementById('navbar');
+function initNavigation() {
   const toggle = document.getElementById('navToggle');
   const links = document.getElementById('navLinks');
-  const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
-
-  window.addEventListener('scroll', () => {
-    navbar.classList.toggle('scrolled', window.scrollY > 40);
-    updateActiveNavLink();
-  });
-
+  
+  // Mobile menu toggle
   toggle.addEventListener('click', () => {
     toggle.classList.toggle('open');
     links.classList.toggle('open');
   });
 
-  navLinks.forEach(link => {
-    link.addEventListener('click', () => {
+  // Handle all page navigation buttons
+  document.querySelectorAll('[data-page]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetPage = btn.getAttribute('data-page');
+      navigateToPage(targetPage);
+      
+      // Close mobile menu if open
       toggle.classList.remove('open');
       links.classList.remove('open');
     });
   });
 }
 
-function updateActiveNavLink() {
-  const sections = ['inicio', 'productos', 'contacto'];
-  const navLinks = document.querySelectorAll('.nav-link');
-  let current = '';
+function navigateToPage(pageId) {
+  if (state.currentPage === pageId) return;
 
-  sections.forEach(id => {
-    const el = document.getElementById(id);
-    if (el && window.scrollY >= el.offsetTop - 120) current = id;
+  const currentEl = document.getElementById(`page-${state.currentPage}`);
+  const targetEl = document.getElementById(`page-${pageId}`);
+  
+  if (!targetEl) return;
+
+  // Animate out current page
+  if (currentEl) {
+    currentEl.classList.remove('page-active');
+    currentEl.classList.add('page-exit');
+  }
+
+  // Update navbar active state
+  document.querySelectorAll('.nav-link').forEach(link => {
+    if (link.getAttribute('data-page') === pageId) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
   });
 
-  navLinks.forEach(link => {
-    link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
-  });
+  // Prepare and animate in target page
+  setTimeout(() => {
+    if (currentEl) currentEl.classList.remove('page-exit');
+    
+    // Reset scroll on target page
+    targetEl.scrollTop = 0;
+    
+    targetEl.classList.add('page-active');
+    state.currentPage = pageId;
+  }, 10); // Tiny delay to ensure classes apply correctly
 }
 
-// ─── LAVA PARTICLES ──────────────────────────────────────────────────────────
+// ─── PARTICLES & BACKGROUNDS ────────────────────────────────────────────────
 
 function initLavaParticles() {
   const container = document.getElementById('lavaParticles');
+  if (!container) return;
   const colors = ['#ff5500', '#ff7733', '#ffaa00', '#ffcc44', '#ff3300'];
 
   for (let i = 0; i < 25; i++) {
@@ -275,11 +298,39 @@ function initLavaParticles() {
   }
 }
 
+function initContactParticles() {
+  const container = document.getElementById('contactParticles');
+  if (!container) return;
+  const colors = ['#ff5500', '#6432ff', '#ffaa00'];
+
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'lava-particle'; // Reutilizamos la animación
+    const size = Math.random() * 4 + 2;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const delay = (i * 0.5) % 10;
+    const dur = 10 + Math.random() * 10;
+
+    p.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      background: ${color};
+      box-shadow: 0 0 ${size * 2}px ${color};
+      left: ${Math.random() * 100}%;
+      animation-duration: ${dur}s;
+      animation-delay: ${delay}s;
+      opacity: 0.3;
+    `;
+    container.appendChild(p);
+  }
+}
+
 // ─── RENDER PRODUCTS ─────────────────────────────────────────────────────────
 
 function renderProducts(filterCategory = 'all') {
   const grid = document.getElementById('productsGrid');
   const emptyState = document.getElementById('emptyState');
+  if (!grid || !emptyState) return;
 
   const filtered = filterCategory === 'all'
     ? state.products
@@ -303,6 +354,7 @@ function renderProducts(filterCategory = 'all') {
 
 function renderCategoryFilters(currentFilter = 'all') {
   const container = document.getElementById('categoryFilters');
+  if (!container) return;
   const cats = ['Todos', ...new Set(state.products.map(p => p.category))];
 
   container.innerHTML = cats.map(cat => {
@@ -389,12 +441,11 @@ function openProductModal(productId) {
   `;
 
   modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  // Avoid scrolling background page
 }
 
 function closeProductModal() {
   document.getElementById('productModal').classList.remove('open');
-  document.body.style.overflow = '';
 }
 
 // ─── BUY NOW → WHATSAPP ──────────────────────────────────────────────────────
@@ -432,7 +483,7 @@ function initContactForm() {
     if (!name || !msg) { showToast('Completa todos los campos', 'error'); return; }
 
     const text = encodeURIComponent(
-      `¡Hola! Soy *${name}*\n\n${msg}\n\n_Mensaje enviado desde Vulkanic Sur Peru_`
+      `¡Hola! Soy *${name}*\n\n${msg}\n\n_Mensaje enviado desde Vulkanic Soft Peru_`
     );
     window.open(`https://wa.me/${state.settings.whatsapp}?text=${text}`, '_blank');
     form.reset();
@@ -445,7 +496,6 @@ function initContactForm() {
 function openAdmin() {
   const overlay = document.getElementById('adminOverlay');
   overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
 
   if (!state.adminAuthenticated) {
     document.getElementById('adminAuth').style.display = 'block';
@@ -468,7 +518,6 @@ function openAdmin() {
 
 function closeAdmin() {
   document.getElementById('adminOverlay').classList.remove('open');
-  document.body.style.overflow = '';
 }
 
 // ─── ADMIN PRODUCT LIST ──────────────────────────────────────────────────────
@@ -497,10 +546,10 @@ function renderAdminProductList() {
           <div class="admin-product-cat">${escHtml(p.category)} · S/ ${Number(p.price).toFixed(2)}</div>
         </div>
         <div class="admin-product-actions">
-          <button class="btn-icon" onclick="editProduct('${p.id}')" title="Editar">
+          <button type="button" class="btn-icon" onclick="editProduct('${p.id}')" title="Editar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn-icon danger" onclick="deleteProduct('${p.id}')" title="Eliminar">
+          <button type="button" class="btn-icon danger" onclick="deleteProduct('${p.id}')" title="Eliminar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
           </button>
         </div>
@@ -535,12 +584,13 @@ function hideProductForm() {
   state.editingProductId = null;
 }
 
-function editProduct(id) {
+// Adding to window so onclick works
+window.editProduct = function(id) {
   const p = state.products.find(x => x.id === id);
   if (p) showProductForm(p);
 }
 
-async function deleteProduct(id) {
+window.deleteProduct = async function(id) {
   if (!confirm('¿Eliminar este producto?')) return;
 
   if (state.db) {
@@ -708,12 +758,6 @@ async function testFirebaseConnection() {
 // ─── BIND EVENTS ─────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  // Open Admin — now triggered by URL param, not navbar button
-  const openAdminBtn = document.getElementById('openAdminBtn');
-  if (openAdminBtn) {
-    openAdminBtn.addEventListener('click', (e) => { e.preventDefault(); openAdmin(); });
-  }
-
   // Close Admin
   document.getElementById('adminClose').addEventListener('click', closeAdmin);
   document.getElementById('adminOverlay').addEventListener('click', (e) => {
@@ -785,25 +829,8 @@ function bindEvents() {
     }
   });
 
-  // Scroll reveal
-  initScrollReveal();
-}
-
-// ─── SCROLL REVEAL ───────────────────────────────────────────────────────────
-
-function initScrollReveal() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('fade-in');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-  document.querySelectorAll('.feature-item, .contact-card, .info-card').forEach(el => {
-    observer.observe(el);
-  });
+  // Scroll reveal is no longer using IntersectionObserver for page system because it resets on page change,
+  // We apply fade-in manually on page load for the content inside or keep it CSS based.
 }
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
