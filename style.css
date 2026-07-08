@@ -206,7 +206,7 @@ p  { color: var(--tx-2); }
     align-items: stretch;
     gap: 4px;
     padding: 12px 16px 16px;
-    background: rgba(11,11,15,.97);
+    background: rgba(18,18,18,.97);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--brd);
     /* Oculto por defecto */
@@ -608,7 +608,7 @@ p  { color: var(--tx-2); }
    FEATURES STRIP
    ============================================================ */
 .features-strip {
-  background: var(--bg-card);
+  background: #121212;
   border-top: 1px solid var(--brd-sub);
   padding: 26px 20px;
   position: relative; z-index: 1;
