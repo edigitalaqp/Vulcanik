@@ -71,7 +71,7 @@
             <span class="gradient-text">Digital con Vulkanic</span>
           </h1>
           <p class="hero-subtitle">
-            Licencias Originales, Software y Servicios Digitales al mejor precio del Perú-Compra 100% segura y
+            Licencias Originales-Software y Servicios Digitales al mejor precio del Perú-Compra 100% segura y
             entrega inmediata.
           </p>
           <div class="hero-ctas">
@@ -560,8 +560,9 @@
                     placeholder="Activación permanente&#10;Para 1 PC&#10;Todas las ediciones&#10;Soporte incluido"></textarea>
                 </div>
                 <div class="form-group form-full">
-                  <label for="prodImage">URL de imagen del producto</label>
-                  <input type="url" id="prodImage" placeholder="https://ejemplo.com/imagen.jpg" />
+                  <label for="prodImageFile">Subir Imagen del producto</label>
+                  <input type="file" id="prodImageFile" accept="image/*" />
+                  <input type="hidden" id="prodImage" />
                   <div id="prodImagePreview" class="img-preview" style="display:none;">
                     <img id="prodImagePreviewImg" src="" alt="Vista previa" />
                     <button type="button" id="clearImageBtn" class="img-preview-clear" aria-label="Quitar imagen">
