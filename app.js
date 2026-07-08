@@ -1,5 +1,5 @@
 /* ============================================
-   VULKANIC SUR PERU – APP LOGIC
+   VULKANIC SOFT PERU – APP LOGIC
    Firebase Firestore + localStorage fallback
    ============================================ */
 
@@ -8,28 +8,31 @@
 let state = {
   products: [],
   settings: {
-    whatsapp: '51987654321',
-    storeName: 'Vulkanic Sur Peru',
+    whatsapp: '32466458677',
+    storeName: 'Vulkanic Soft Peru',
     adminPassword: 'vulkanic2025',
     firebaseConfig: null
   },
   adminAuthenticated: false,
   editingProductId: null,
-  db: null,           // Firestore instance
-  unsubscribe: null   // Real-time listener
+  db: null,
+  unsubscribe: null,
+  currentPage: 'inicio',
+  searchQuery: ''
 };
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSettingsFromStorage();
-  initNavbar();
+  initNavigation();
   initLavaParticles();
+  initProductsParticles();
+  initContactParticles();
   bindEvents();
   updateWhatsAppLinks();
   initFirebase();
 
-  // Open admin if URL contains ?admin=1
   if (new URLSearchParams(window.location.search).get('admin') === '1') {
     openAdmin();
   }
@@ -49,7 +52,7 @@ function saveSettingsToStorage() {
   localStorage.setItem('vk_settings', JSON.stringify(state.settings));
 }
 
-// ─── LOCAL PRODUCTS (fallback when Firebase not configured) ──────────────────
+// ─── LOCAL PRODUCTS ───────────────────────────────────────────────────────────
 
 function loadLocalProducts() {
   const saved = localStorage.getItem('vk_products');
@@ -74,11 +77,8 @@ function initFirebase(config = null) {
     updateFirebaseStatusUI(false);
     return;
   }
-
   try {
-    if (firebase.apps.length > 0) {
-      firebase.apps.forEach(app => app.delete());
-    }
+    if (firebase.apps.length > 0) firebase.apps.forEach(app => app.delete());
     firebase.initializeApp(cfg);
     const db = firebase.firestore();
     state.db = db;
@@ -93,15 +93,11 @@ function initFirebase(config = null) {
 
 function startFirestoreListener(db) {
   if (state.unsubscribe) state.unsubscribe();
-
   state.unsubscribe = db.collection('products')
     .orderBy('createdAt', 'asc')
     .onSnapshot(
       snapshot => {
-        state.products = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        state.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderProducts();
         renderAdminProductList();
       },
@@ -115,17 +111,17 @@ function startFirestoreListener(db) {
 }
 
 function updateFirebaseStatusUI(connected) {
-  const dot = document.getElementById('firebaseStatusDot');
+  const dot  = document.getElementById('firebaseStatusDot');
   const text = document.getElementById('firebaseStatusText');
   if (!dot || !text) return;
   if (connected) {
     dot.style.background = '#22c55e';
-    dot.style.boxShadow = '0 0 8px #22c55e';
+    dot.style.boxShadow  = '0 0 8px #22c55e';
     text.textContent = 'Conectado ✓';
     text.style.color = '#22c55e';
   } else {
     dot.style.background = '#f59e0b';
-    dot.style.boxShadow = '0 0 8px #f59e0b';
+    dot.style.boxShadow  = '0 0 8px #f59e0b';
     text.textContent = 'Sin conectar';
     text.style.color = '#f59e0b';
   }
@@ -135,142 +131,117 @@ function updateFirebaseStatusUI(connected) {
 
 function loadSampleProducts() {
   state.products = [
-    {
-      id: 'sp1',
-      name: 'Windows 11 Pro',
-      category: 'Sistema Operativo',
-      price: 35,
-      oldPrice: 65,
-      description: 'Licencia original de Windows 11 Pro con activación permanente. La versión más avanzada del sistema operativo de Microsoft.',
-      features: ['Activación permanente', 'Para 1 PC', 'Todas las ediciones', 'Soporte técnico incluido', 'Actualizaciones garantizadas'],
-      emoji: '🖥️',
-      featured: true
-    },
-    {
-      id: 'sp2',
-      name: 'Microsoft Office 365',
-      category: 'Suite Ofimática',
-      price: 45,
-      oldPrice: 80,
-      description: 'Suite completa de Microsoft Office con Word, Excel, PowerPoint, Teams y más. Acceso a todas las aplicaciones premium.',
-      features: ['Word, Excel, PowerPoint', 'Teams y OneDrive', '1 TB almacenamiento', 'Actualizaciones automáticas', '5 dispositivos'],
-      emoji: '📊',
-      featured: false
-    },
-    {
-      id: 'sp3',
-      name: 'Antivirus Premium',
-      category: 'Seguridad',
-      price: 25,
-      oldPrice: 50,
-      description: 'Protección total contra virus, malware, ransomware y amenazas en tiempo real para tu PC y dispositivos móviles.',
-      features: ['Protección en tiempo real', 'Anti-ransomware', 'VPN incluido', 'Multi-dispositivo', '1 año de vigencia'],
-      emoji: '🛡️',
-      featured: false
-    },
-    {
-      id: 'sp4',
-      name: 'Adobe Creative Cloud',
-      category: 'Diseño',
-      price: 55,
-      oldPrice: 120,
-      description: 'Acceso completo a todas las aplicaciones de Adobe: Photoshop, Illustrator, Premiere Pro, After Effects y más.',
-      features: ['Photoshop + Illustrator', 'Premiere Pro', 'After Effects', '100 GB almacenamiento', 'Fonts premium'],
-      emoji: '🎨',
-      featured: true
-    },
-    {
-      id: 'sp5',
-      name: 'VPN Premium Anual',
-      category: 'Privacidad',
-      price: 20,
-      oldPrice: 40,
-      description: 'Navega con total privacidad y seguridad. Accede a contenido de todo el mundo sin restricciones.',
-      features: ['Servidores en 60 países', 'Sin límite de velocidad', 'Sin registros de actividad', '6 dispositivos simultáneos', 'Soporte 24/7'],
-      emoji: '🔐',
-      featured: false
-    },
-    {
-      id: 'sp6',
-      name: 'Cuenta Streaming Premium',
-      category: 'Entretenimiento',
-      price: 15,
-      oldPrice: 30,
-      description: 'Disfruta del mejor entretenimiento con acceso a plataformas de streaming en calidad 4K Ultra HD.',
-      features: ['Calidad 4K Ultra HD', 'Sin anuncios', 'Descargas offline', 'Múltiples perfiles', '30 días garantía'],
-      emoji: '🎬',
-      featured: false
-    }
+    { id: 'sp1', name: 'Windows 11 Pro', category: 'Sistema Operativo', price: 35, oldPrice: 65, description: 'Licencia original de Windows 11 Pro con activación permanente. La versión más avanzada del sistema operativo de Microsoft.', features: ['Activación permanente', 'Para 1 PC', 'Todas las ediciones', 'Soporte técnico incluido', 'Actualizaciones garantizadas'], emoji: '🖥️', featured: true },
+    { id: 'sp2', name: 'Microsoft Office 365', category: 'Suite Ofimática', price: 45, oldPrice: 80, description: 'Suite completa de Microsoft Office con Word, Excel, PowerPoint, Teams y más. Acceso a todas las aplicaciones premium.', features: ['Word, Excel, PowerPoint', 'Teams y OneDrive', '1 TB almacenamiento', 'Actualizaciones automáticas', '5 dispositivos'], emoji: '📊', featured: false },
+    { id: 'sp3', name: 'Antivirus Premium', category: 'Seguridad', price: 25, oldPrice: 50, description: 'Protección total contra virus, malware, ransomware y amenazas en tiempo real para tu PC y dispositivos móviles.', features: ['Protección en tiempo real', 'Anti-ransomware', 'VPN incluido', 'Multi-dispositivo', '1 año de vigencia'], emoji: '🛡️', featured: false },
+    { id: 'sp4', name: 'Adobe Creative Cloud', category: 'Diseño', price: 55, oldPrice: 120, description: 'Acceso completo a todas las aplicaciones de Adobe: Photoshop, Illustrator, Premiere Pro, After Effects y más.', features: ['Photoshop + Illustrator', 'Premiere Pro', 'After Effects', '100 GB almacenamiento', 'Fonts premium'], emoji: '🎨', featured: true },
+    { id: 'sp5', name: 'VPN Premium Anual', category: 'Privacidad', price: 20, oldPrice: 40, description: 'Navega con total privacidad y seguridad. Accede a contenido de todo el mundo sin restricciones.', features: ['Servidores en 60 países', 'Sin límite de velocidad', 'Sin registros de actividad', '6 dispositivos simultáneos', 'Soporte 24/7'], emoji: '🔐', featured: false },
+    { id: 'sp6', name: 'Cuenta Streaming Premium', category: 'Entretenimiento', price: 15, oldPrice: 30, description: 'Disfruta del mejor entretenimiento con acceso a plataformas de streaming en calidad 4K Ultra HD.', features: ['Calidad 4K Ultra HD', 'Sin anuncios', 'Descargas offline', 'Múltiples perfiles', '30 días garantía'], emoji: '🎬', featured: false }
   ];
   saveLocalProducts();
   renderProducts();
   renderAdminProductList();
 }
 
-// ─── NAVBAR ──────────────────────────────────────────────────────────────────
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
 
-function initNavbar() {
-  const navbar = document.getElementById('navbar');
+function initNavigation() {
   const toggle = document.getElementById('navToggle');
-  const links = document.getElementById('navLinks');
-  const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
+  const links  = document.getElementById('navLinks');
 
-  window.addEventListener('scroll', () => {
-    navbar.classList.toggle('scrolled', window.scrollY > 40);
-    updateActiveNavLink();
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = toggle.classList.toggle('open');
+    links.classList.toggle('open', isOpen);
+    toggle.setAttribute('aria-expanded', isOpen);
   });
 
-  toggle.addEventListener('click', () => {
-    toggle.classList.toggle('open');
-    links.classList.toggle('open');
-  });
-
-  navLinks.forEach(link => {
-    link.addEventListener('click', () => {
+  document.addEventListener('click', (e) => {
+    const navbar = document.getElementById('navbar');
+    if (navbar && !navbar.contains(e.target)) {
       toggle.classList.remove('open');
       links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  document.querySelectorAll('[data-page]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetPage = btn.getAttribute('data-page');
+      navigateToPage(targetPage);
+      toggle.classList.remove('open');
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
     });
   });
 }
 
-function updateActiveNavLink() {
-  const sections = ['inicio', 'productos', 'contacto'];
-  const navLinks = document.querySelectorAll('.nav-link');
-  let current = '';
+function navigateToPage(pageId) {
+  if (state.currentPage === pageId) return;
+  const currentEl = document.getElementById(`page-${state.currentPage}`);
+  const targetEl  = document.getElementById(`page-${pageId}`);
+  if (!targetEl) return;
 
-  sections.forEach(id => {
-    const el = document.getElementById(id);
-    if (el && window.scrollY >= el.offsetTop - 120) current = id;
+  if (currentEl) {
+    currentEl.classList.remove('page-active');
+    currentEl.classList.add('page-exit');
+  }
+
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.toggle('active', link.getAttribute('data-page') === pageId);
   });
 
-  navLinks.forEach(link => {
-    link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
-  });
+  setTimeout(() => {
+    if (currentEl) currentEl.classList.remove('page-exit');
+    targetEl.scrollTop = 0;
+    targetEl.classList.add('page-active');
+    state.currentPage = pageId;
+  }, 10);
 }
 
-// ─── LAVA PARTICLES ──────────────────────────────────────────────────────────
+// ─── PARTICLES ───────────────────────────────────────────────────────────────
 
 function initLavaParticles() {
   const container = document.getElementById('lavaParticles');
+  if (!container) return;
   const colors = ['#ff5500', '#ff7733', '#ffaa00', '#ffcc44', '#ff3300'];
-
   for (let i = 0; i < 25; i++) {
     const p = document.createElement('div');
     p.className = 'lava-particle';
     const size = Math.random() * 6 + 3;
     const color = colors[Math.floor(Math.random() * colors.length)];
     const delay = (i * 0.4) % 10;
-    const dur = 8 + Math.random() * 8;
+    const dur   = 8 + Math.random() * 8;
+    p.style.cssText = `width:${size}px;height:${size}px;background:${color};box-shadow:0 0 ${size*2}px ${color};left:${Math.random()*100}%;animation-duration:${dur}s;animation-delay:${delay}s;`;
+    container.appendChild(p);
+  }
+}
 
-    p.style.cssText = `
-      width: ${size}px;
-      height: ${size}px;
-      background: ${color};
-      box-shadow: 0 0 ${size * 2}px ${color};
-      left: ${Math.random() * 100}%;
-      animation-duration: ${dur}s;
-      animation-delay: ${delay}s;
-    `;
+function initContactParticles() {
+  const container = document.getElementById('contactParticles');
+  if (!container) return;
+  const colors = ['#ff5500', '#ffaa00', '#cc3300'];
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'lava-particle';
+    const size = Math.random() * 4 + 2;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    p.style.cssText = `width:${size}px;height:${size}px;background:${color};box-shadow:0 0 ${size*2}px ${color};left:${Math.random()*100}%;animation-duration:${10+Math.random()*10}s;animation-delay:${(i*0.5)%10}s;opacity:.3;`;
+    container.appendChild(p);
+  }
+}
+
+function initProductsParticles() {
+  const container = document.getElementById('productsParticles');
+  if (!container) return;
+  const colors = ['#ff5500', '#ffaa00', '#cc3300'];
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'lava-particle';
+    const size = Math.random() * 4 + 2;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    p.style.cssText = `width:${size}px;height:${size}px;background:${color};box-shadow:0 0 ${size*2}px ${color};left:${Math.random()*100}%;animation-duration:${10+Math.random()*10}s;animation-delay:${(i*0.5)%10}s;opacity:.25;`;
     container.appendChild(p);
   }
 }
@@ -278,12 +249,23 @@ function initLavaParticles() {
 // ─── RENDER PRODUCTS ─────────────────────────────────────────────────────────
 
 function renderProducts(filterCategory = 'all') {
-  const grid = document.getElementById('productsGrid');
+  const grid       = document.getElementById('productsGrid');
   const emptyState = document.getElementById('emptyState');
+  if (!grid || !emptyState) return;
 
-  const filtered = filterCategory === 'all'
+  const query = (state.searchQuery || '').toLowerCase().trim();
+
+  let filtered = filterCategory === 'all'
     ? state.products
     : state.products.filter(p => p.category === filterCategory);
+
+  if (query) {
+    filtered = filtered.filter(p =>
+      (p.name        || '').toLowerCase().includes(query) ||
+      (p.description || '').toLowerCase().includes(query) ||
+      (p.category    || '').toLowerCase().includes(query)
+    );
+  }
 
   renderCategoryFilters(filterCategory);
 
@@ -295,7 +277,6 @@ function renderProducts(filterCategory = 'all') {
 
   emptyState.style.display = 'none';
   grid.innerHTML = filtered.map((p, i) => productCardHTML(p, i)).join('');
-
   grid.querySelectorAll('.product-card').forEach((card, i) => {
     card.style.animationDelay = `${i * 0.07}s`;
   });
@@ -303,13 +284,12 @@ function renderProducts(filterCategory = 'all') {
 
 function renderCategoryFilters(currentFilter = 'all') {
   const container = document.getElementById('categoryFilters');
+  if (!container) return;
   const cats = ['Todos', ...new Set(state.products.map(p => p.category))];
-
   container.innerHTML = cats.map(cat => {
     const val = cat === 'Todos' ? 'all' : cat;
     return `<button class="filter-btn ${currentFilter === val ? 'active' : ''}" data-category="${val}">${cat}</button>`;
   }).join('');
-
   container.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -322,7 +302,7 @@ function renderCategoryFilters(currentFilter = 'all') {
 function productCardHTML(p, index) {
   const features = (p.features || []).slice(0, 3);
   return `
-    <div class="product-card" onclick="openProductModal('${p.id}')" style="animation-delay:${index * 0.07}s;">
+    <div class="product-card" onclick="openProductModal('${p.id}')" style="animation-delay:${index*0.07}s;">
       ${p.featured ? '<div class="product-badge-featured">Destacado</div>' : ''}
       <div class="product-card-top">
         <div class="product-emoji">${p.emoji || '📦'}</div>
@@ -354,9 +334,8 @@ function productCardHTML(p, index) {
 function openProductModal(productId) {
   const p = state.products.find(x => x.id === productId);
   if (!p) return;
-
   const modal = document.getElementById('productModal');
-  const body = document.getElementById('modalBody');
+  const body  = document.getElementById('modalBody');
   const features = p.features || [];
 
   body.innerHTML = `
@@ -387,28 +366,20 @@ function openProductModal(productId) {
       </button>
     </div>
   `;
-
   modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
 }
 
 function closeProductModal() {
   document.getElementById('productModal').classList.remove('open');
-  document.body.style.overflow = '';
 }
 
-// ─── BUY NOW → WHATSAPP ──────────────────────────────────────────────────────
+// ─── WHATSAPP ────────────────────────────────────────────────────────────────
 
 function buyNow(productId) {
   const p = state.products.find(x => x.id === productId);
   if (!p) return;
-
   const msg = encodeURIComponent(
-    `¡Hola! Quiero comprar:\n\n` +
-    `*${p.name}*\n` +
-    `Precio: S/ ${Number(p.price).toFixed(2)}\n` +
-    `Categoría: ${p.category}\n\n` +
-    `¿Podrías ayudarme con la compra?`
+    `¡Hola! Quiero comprar:\n\n*${p.name}*\nPrecio: S/ ${Number(p.price).toFixed(2)}\nCategoría: ${p.category}\n\n¿Podrías ayudarme con la compra?`
   );
   window.open(`https://wa.me/${state.settings.whatsapp}?text=${msg}`, '_blank');
 }
@@ -423,71 +394,47 @@ function updateWhatsAppLinks() {
 function initContactForm() {
   const form = document.getElementById('contactForm');
   if (!form) return;
-
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = document.getElementById('contactName').value.trim();
-    const msg = document.getElementById('contactMsg').value.trim();
-
+    const msg  = document.getElementById('contactMsg').value.trim();
     if (!name || !msg) { showToast('Completa todos los campos', 'error'); return; }
-
-    const text = encodeURIComponent(
-      `¡Hola! Soy *${name}*\n\n${msg}\n\n_Mensaje enviado desde Vulkanic Sur Peru_`
-    );
+    const text = encodeURIComponent(`¡Hola! Soy *${name}*\n\n${msg}\n\n_Mensaje enviado desde Vulkanic Soft Peru_`);
     window.open(`https://wa.me/${state.settings.whatsapp}?text=${text}`, '_blank');
     form.reset();
     showToast('Mensaje preparado. Abriendo WhatsApp...', 'success');
   });
 }
 
-// ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
+// ─── ADMIN ───────────────────────────────────────────────────────────────────
 
 function openAdmin() {
   const overlay = document.getElementById('adminOverlay');
   overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
-
   if (!state.adminAuthenticated) {
     document.getElementById('adminAuth').style.display = 'block';
     document.getElementById('adminMain').style.display = 'none';
   }
-
-  // Populate settings form
-  document.getElementById('settingsWhatsapp').value = state.settings.whatsapp || '';
+  document.getElementById('settingsWhatsapp').value  = state.settings.whatsapp || '';
   document.getElementById('settingsStoreName').value = state.settings.storeName || '';
-
-  // Populate Firebase config if saved
   if (state.settings.firebaseConfig) {
-    document.getElementById('settingsFirebaseConfig').value =
-      JSON.stringify(state.settings.firebaseConfig, null, 2);
+    document.getElementById('settingsFirebaseConfig').value = JSON.stringify(state.settings.firebaseConfig, null, 2);
   }
-
-  // Update Firebase status indicator
   updateFirebaseStatusUI(!!state.db);
 }
 
 function closeAdmin() {
   document.getElementById('adminOverlay').classList.remove('open');
-  document.body.style.overflow = '';
 }
-
-// ─── ADMIN PRODUCT LIST ──────────────────────────────────────────────────────
 
 function renderAdminProductList() {
   const list = document.getElementById('adminProductsList');
   if (!list) return;
-
   const mode = state.db ? 'Firebase' : 'Local';
-
   if (state.products.length === 0) {
-    list.innerHTML = `
-      <div class="admin-mode-badge">${mode}</div>
-      <p style="color:var(--text-muted);font-size:0.9rem;text-align:center;padding:24px;">
-        No hay productos. Agrega el primero →
-      </p>`;
+    list.innerHTML = `<div class="admin-mode-badge">${mode}</div><p style="color:var(--tx-3);font-size:.9rem;text-align:center;padding:24px;">No hay productos. Agrega el primero →</p>`;
     return;
   }
-
   list.innerHTML = `<div class="admin-mode-badge">${mode}</div>` +
     state.products.map(p => `
       <div class="admin-product-item" id="admin-item-${p.id}">
@@ -497,10 +444,10 @@ function renderAdminProductList() {
           <div class="admin-product-cat">${escHtml(p.category)} · S/ ${Number(p.price).toFixed(2)}</div>
         </div>
         <div class="admin-product-actions">
-          <button class="btn-icon" onclick="editProduct('${p.id}')" title="Editar">
+          <button type="button" class="btn-icon" onclick="editProduct('${p.id}')" title="Editar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn-icon danger" onclick="deleteProduct('${p.id}')" title="Eliminar">
+          <button type="button" class="btn-icon danger" onclick="deleteProduct('${p.id}')" title="Eliminar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
           </button>
         </div>
@@ -515,17 +462,15 @@ function showProductForm(product = null) {
   container.style.display = 'block';
   state.editingProductId = product ? product.id : null;
   document.getElementById('productFormTitle').textContent = product ? 'Editar Producto' : 'Nuevo Producto';
-
-  document.getElementById('productId').value = product?.id || '';
-  document.getElementById('prodName').value = product?.name || '';
-  document.getElementById('prodCategory').value = product?.category || '';
-  document.getElementById('prodPrice').value = product?.price || '';
-  document.getElementById('prodOldPrice').value = product?.oldPrice || '';
-  document.getElementById('prodDesc').value = product?.description || '';
-  document.getElementById('prodFeatures').value = (product?.features || []).join('\n');
-  document.getElementById('prodEmoji').value = product?.emoji || '📦';
-  document.getElementById('prodFeatured').checked = product?.featured || false;
-
+  document.getElementById('productId').value       = product?.id || '';
+  document.getElementById('prodName').value        = product?.name || '';
+  document.getElementById('prodCategory').value    = product?.category || '';
+  document.getElementById('prodPrice').value       = product?.price || '';
+  document.getElementById('prodOldPrice').value    = product?.oldPrice || '';
+  document.getElementById('prodDesc').value        = product?.description || '';
+  document.getElementById('prodFeatures').value    = (product?.features || []).join('\n');
+  document.getElementById('prodEmoji').value       = product?.emoji || '📦';
+  document.getElementById('prodFeatured').checked  = product?.featured || false;
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -535,16 +480,14 @@ function hideProductForm() {
   state.editingProductId = null;
 }
 
-function editProduct(id) {
+window.editProduct = function(id) {
   const p = state.products.find(x => x.id === id);
   if (p) showProductForm(p);
-}
+};
 
-async function deleteProduct(id) {
+window.deleteProduct = async function(id) {
   if (!confirm('¿Eliminar este producto?')) return;
-
   if (state.db) {
-    // Firebase delete
     try {
       await state.db.collection('products').doc(id).delete();
       showToast('Producto eliminado.', 'info');
@@ -552,40 +495,34 @@ async function deleteProduct(id) {
       showToast('Error al eliminar: ' + err.message, 'error');
     }
   } else {
-    // Local delete
     state.products = state.products.filter(x => x.id !== id);
     saveLocalProducts();
     renderProducts();
     renderAdminProductList();
     showToast('Producto eliminado', 'info');
   }
-}
+};
 
 async function saveProduct(e) {
   e.preventDefault();
-
-  const name = document.getElementById('prodName').value.trim();
-  const category = document.getElementById('prodCategory').value.trim();
-  const price = parseFloat(document.getElementById('prodPrice').value);
-  const oldPrice = parseFloat(document.getElementById('prodOldPrice').value) || null;
+  const name        = document.getElementById('prodName').value.trim();
+  const category    = document.getElementById('prodCategory').value.trim();
+  const price       = parseFloat(document.getElementById('prodPrice').value);
+  const oldPrice    = parseFloat(document.getElementById('prodOldPrice').value) || null;
   const description = document.getElementById('prodDesc').value.trim();
   const featuresRaw = document.getElementById('prodFeatures').value.trim();
-  const features = featuresRaw ? featuresRaw.split('\n').map(f => f.trim()).filter(Boolean) : [];
-  const emoji = document.getElementById('prodEmoji').value.trim() || '📦';
-  const featured = document.getElementById('prodFeatured').checked;
+  const features    = featuresRaw ? featuresRaw.split('\n').map(f => f.trim()).filter(Boolean) : [];
+  const emoji       = document.getElementById('prodEmoji').value.trim() || '📦';
+  const featured    = document.getElementById('prodFeatured').checked;
 
   if (!name || !category || isNaN(price)) {
     showToast('Completa los campos requeridos (*)', 'error');
     return;
   }
 
-  const productData = {
-    name, category, price, oldPrice, description, features, emoji, featured,
-    updatedAt: new Date().toISOString()
-  };
+  const productData = { name, category, price, oldPrice, description, features, emoji, featured, updatedAt: new Date().toISOString() };
 
   if (state.db) {
-    // Firebase save
     try {
       if (state.editingProductId) {
         await state.db.collection('products').doc(state.editingProductId).update(productData);
@@ -600,7 +537,6 @@ async function saveProduct(e) {
       return;
     }
   } else {
-    // Local save
     if (state.editingProductId) {
       const idx = state.products.findIndex(x => x.id === state.editingProductId);
       if (idx !== -1) state.products[idx] = { ...state.products[idx], ...productData };
@@ -613,7 +549,6 @@ async function saveProduct(e) {
     renderProducts();
     renderAdminProductList();
   }
-
   hideProductForm();
 }
 
@@ -621,11 +556,10 @@ async function saveProduct(e) {
 
 function saveSettingsForm(e) {
   e.preventDefault();
-
-  const whatsapp = document.getElementById('settingsWhatsapp').value.trim();
+  const whatsapp  = document.getElementById('settingsWhatsapp').value.trim();
   const storeName = document.getElementById('settingsStoreName').value.trim();
-  const password = document.getElementById('settingsPassword').value.trim();
-  const fbRaw = document.getElementById('settingsFirebaseConfig').value.trim();
+  const password  = document.getElementById('settingsPassword').value.trim();
+  const fbRaw     = document.getElementById('settingsFirebaseConfig').value.trim();
 
   if (!whatsapp) { showToast('El número de WhatsApp es requerido', 'error'); return; }
 
@@ -633,15 +567,10 @@ function saveSettingsForm(e) {
   if (storeName) state.settings.storeName = storeName;
   if (password) state.settings.adminPassword = password;
 
-  // Parse Firebase config
   if (fbRaw) {
     try {
-      // Accept both plain object and const firebaseConfig = {...}
-      const cleaned = fbRaw
-        .replace(/^const\s+\w+\s*=\s*/, '')  // Remove "const x = "
-        .replace(/;?\s*$/, '');               // Remove trailing semicolon
-      const parsed = JSON.parse(cleaned);
-      state.settings.firebaseConfig = parsed;
+      const cleaned = fbRaw.replace(/^const\s+\w+\s*=\s*/, '').replace(/;?\s*$/, '');
+      state.settings.firebaseConfig = JSON.parse(cleaned);
     } catch (err) {
       showToast('Firebase Config JSON inválido. Revisa el formato.', 'error');
       return;
@@ -650,46 +579,24 @@ function saveSettingsForm(e) {
 
   saveSettingsToStorage();
   updateWhatsAppLinks();
-
-  // Re-init Firebase if config was provided
-  if (state.settings.firebaseConfig) {
-    initFirebase(state.settings.firebaseConfig);
-  }
-
+  if (state.settings.firebaseConfig) initFirebase(state.settings.firebaseConfig);
   showToast('Configuración guardada.', 'success');
   document.getElementById('settingsPassword').value = '';
 }
 
-// Test Firebase connection
 async function testFirebaseConnection() {
-  const btn = document.getElementById('testFirebaseBtn');
+  const btn   = document.getElementById('testFirebaseBtn');
   const fbRaw = document.getElementById('settingsFirebaseConfig').value.trim();
-
-  if (!fbRaw) {
-    showToast('Pega primero tu Firebase Config', 'error');
-    return;
-  }
-
+  if (!fbRaw) { showToast('Pega primero tu Firebase Config', 'error'); return; }
   btn.disabled = true;
   btn.textContent = '⏳ Probando...';
-
   try {
-    const cleaned = fbRaw
-      .replace(/^const\s+\w+\s*=\s*/, '')
-      .replace(/;?\s*$/, '');
+    const cleaned = fbRaw.replace(/^const\s+\w+\s*=\s*/, '').replace(/;?\s*$/, '');
     const cfg = JSON.parse(cleaned);
-
-    // Clear existing apps
-    if (firebase.apps.length > 0) {
-      await Promise.all(firebase.apps.map(app => app.delete()));
-    }
-
+    if (firebase.apps.length > 0) await Promise.all(firebase.apps.map(a => a.delete()));
     firebase.initializeApp(cfg);
     const db = firebase.firestore();
-
-    // Try a test read
     await db.collection('products').limit(1).get();
-
     state.db = db;
     state.settings.firebaseConfig = cfg;
     saveSettingsToStorage();
@@ -708,19 +615,12 @@ async function testFirebaseConnection() {
 // ─── BIND EVENTS ─────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  // Open Admin — now triggered by URL param, not navbar button
-  const openAdminBtn = document.getElementById('openAdminBtn');
-  if (openAdminBtn) {
-    openAdminBtn.addEventListener('click', (e) => { e.preventDefault(); openAdmin(); });
-  }
-
-  // Close Admin
+  // Admin
   document.getElementById('adminClose').addEventListener('click', closeAdmin);
   document.getElementById('adminOverlay').addEventListener('click', (e) => {
     if (e.target === document.getElementById('adminOverlay')) closeAdmin();
   });
 
-  // Admin Login
   document.getElementById('adminLoginBtn').addEventListener('click', () => {
     const pw = document.getElementById('adminPassword').value;
     if (pw === state.settings.adminPassword) {
@@ -729,8 +629,7 @@ function bindEvents() {
       document.getElementById('adminMain').style.display = 'block';
       updateFirebaseStatusUI(!!state.db);
       if (state.settings.firebaseConfig) {
-        document.getElementById('settingsFirebaseConfig').value =
-          JSON.stringify(state.settings.firebaseConfig, null, 2);
+        document.getElementById('settingsFirebaseConfig').value = JSON.stringify(state.settings.firebaseConfig, null, 2);
       }
       showToast('Acceso concedido.', 'success');
     } else {
@@ -743,7 +642,6 @@ function bindEvents() {
     if (e.key === 'Enter') document.getElementById('adminLoginBtn').click();
   });
 
-  // Admin tabs
   document.querySelectorAll('.admin-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -753,31 +651,19 @@ function bindEvents() {
     });
   });
 
-  // Add product button
   document.getElementById('addProductBtn').addEventListener('click', () => showProductForm());
-
-  // Cancel product form
   document.getElementById('cancelProductBtn').addEventListener('click', hideProductForm);
-
-  // Save product form
   document.getElementById('productForm').addEventListener('submit', saveProduct);
-
-  // Settings form
   document.getElementById('settingsForm').addEventListener('submit', saveSettingsForm);
-
-  // Test Firebase button
   document.getElementById('testFirebaseBtn').addEventListener('click', testFirebaseConnection);
 
-  // Close product modal
   document.getElementById('modalClose').addEventListener('click', closeProductModal);
   document.getElementById('productModal').addEventListener('click', (e) => {
     if (e.target === document.getElementById('productModal')) closeProductModal();
   });
 
-  // Contact form
   initContactForm();
 
-  // Escape key
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeProductModal();
@@ -785,25 +671,31 @@ function bindEvents() {
     }
   });
 
-  // Scroll reveal
-  initScrollReveal();
-}
+  // ── BUSCADOR ──
+  const searchInput = document.getElementById('productSearch');
+  const searchClear = document.getElementById('searchClear');
 
-// ─── SCROLL REVEAL ───────────────────────────────────────────────────────────
-
-function initScrollReveal() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('fade-in');
-        observer.unobserve(entry.target);
-      }
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      state.searchQuery = searchInput.value;
+      searchClear.style.display = searchInput.value ? 'flex' : 'none';
+      const activeFilter = document.querySelector('.filter-btn.active');
+      const cat = activeFilter ? activeFilter.dataset.category : 'all';
+      renderProducts(cat);
     });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  }
 
-  document.querySelectorAll('.feature-item, .contact-card, .info-card').forEach(el => {
-    observer.observe(el);
-  });
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      state.searchQuery = '';
+      searchClear.style.display = 'none';
+      searchInput.focus();
+      const activeFilter = document.querySelector('.filter-btn.active');
+      const cat = activeFilter ? activeFilter.dataset.category : 'all';
+      renderProducts(cat);
+    });
+  }
 }
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
@@ -812,17 +704,16 @@ function showToast(message, type = 'info') {
   const container = document.getElementById('toastContainer');
   const icons = {
     success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+    error:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    info:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
   };
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `<span>${icons[type] || icons.info}</span> ${escHtml(message)}`;
   container.appendChild(toast);
-
   setTimeout(() => {
-    toast.style.animation = 'toastOut 0.3s ease forwards';
-    setTimeout(() => toast.remove(), 300);
+    toast.style.animation = 'toastOut .28s ease forwards';
+    setTimeout(() => toast.remove(), 280);
   }, 3500);
 }
 
@@ -831,24 +722,9 @@ function showToast(message, type = 'info') {
 function escHtml(str) {
   if (!str && str !== 0) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-setTimeout(() => toast.remove(), 280);
-  }, 3500);
-}
-
-// ─── UTILS ───────────────────────────────────────────────────────────────────
-
-function escHtml(str) {
-  if (!str && str !== 0) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;')
+    .replace(/'/g,  '&#039;');
 }
