@@ -278,7 +278,7 @@ p  { color: var(--tx-2); }
    FONDOS DE PÁGINA — PRODUCTOS
    ============================================================ */
 .page-bg {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
@@ -804,6 +804,7 @@ p  { color: var(--tx-2); }
 .product-desc {
   font-size: .81rem; color: var(--tx-2); line-height: 1.55; margin-bottom: 12px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  white-space: pre-wrap; text-align: justify;
 }
 .product-features { list-style: none; margin-bottom: 16px; display: flex; flex-direction: column; gap: 4px; }
 .product-feature {
@@ -1062,7 +1063,7 @@ a.footer-contact-item:hover { color: var(--orange); }
 .modal-product-emoji  { font-size: 3.2rem; }
 .modal-product-category { font-size: .68rem; color: var(--orange); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 3px; }
 .modal-product-name    { font-size: 1.3rem; font-weight: 800; color: var(--tx-1); }
-.modal-product-desc    { color: var(--tx-2); line-height: 1.7; margin-bottom: 16px; font-size: .91rem; }
+.modal-product-desc    { color: var(--tx-2); line-height: 1.7; margin-bottom: 16px; font-size: .91rem; white-space: pre-wrap; text-align: justify; }
 
 .modal-features { background: var(--surface); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
 .modal-features h4 { font-size: .76rem; font-weight: 700; color: var(--tx-3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }

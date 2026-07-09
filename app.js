@@ -435,7 +435,7 @@ function bindEvents() {
 
   initContactForm();
 
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeProductModal(); if (state.adminAuthenticated) closeAdmin(); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeProductModal(); } });
 
   var si = document.getElementById('productSearch'), sc = document.getElementById('searchClear');
   if (si) { si.addEventListener('input', function () { state.searchQuery = si.value; sc.style.display = si.value ? 'flex' : 'none'; state.productPage = 1; var af = document.querySelector('.filter-btn.active'); renderProducts(af ? af.dataset.category : 'all'); }); }
