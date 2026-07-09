@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded', function () {
   if (window.location.hash === '#ownerVulkanic') {
     history.replaceState(null, '', window.location.pathname);
     openAdmin();
+  } else if (window.location.hash === '#productos') {
+    history.replaceState(null, '', window.location.pathname);
+    setTimeout(function() { navigateToPage('productos'); }, 50);
   }
 });
 
@@ -39,6 +42,9 @@ window.addEventListener('hashchange', function () {
   if (window.location.hash === '#ownerVulkanic') {
     history.replaceState(null, '', window.location.pathname);
     openAdmin();
+  } else if (window.location.hash === '#productos') {
+    history.replaceState(null, '', window.location.pathname);
+    navigateToPage('productos');
   }
 });
 
