@@ -17,7 +17,7 @@ var state = {
   currentPage: 'inicio',
   searchQuery: '',
   productPage: 1,
-  productsPerPage: 9
+  productsPerPage: 4
 };
 
 document.addEventListener('DOMContentLoaded', function () {
