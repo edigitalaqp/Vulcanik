@@ -2,9 +2,15 @@
    VULKANIC SOFT PERU – APP LOGIC v2
    ============================================ */
 
+// CONFIGURACIÓN GLOBAL DE LA NUBE
+var SUPABASE_URL = 'https://jflwukegiolxbkcvzocy.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmbHd1a2VnaW9seGJrY3Z6b2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NDc2MDQsImV4cCI6MjA5OTEyMzYwNH0.b78JsB4nSHUV-ejgRzY9Z90H1pobvXa2cfHA8FeanRQ';
+var CLOUDINARY_NAME = 'dngdzb32p';
+var CLOUDINARY_PRESET = 'vulkanic_imagenes';
+
 var state = {
   products: [],
-  settings: { whatsapp: '32466458677', storeName: 'Vulkanic Soft Peru', adminPassword: 'vulkanic2025', supabaseUrl: '', supabaseKey: '', cloudinaryName: '', cloudinaryPreset: '' },
+  settings: { whatsapp: '32466458677', storeName: 'Vulkanic Soft Peru', adminPassword: 'vulkanic2025' },
   adminAuthenticated: false,
   editingProductId: null,
   supabase: null,
@@ -43,25 +49,20 @@ function loadSettingsFromStorage() {
 function saveSettingsToStorage() { localStorage.setItem('vk_settings', JSON.stringify(state.settings)); }
 
 function loadLocalProducts() {
-  var s = localStorage.getItem('vk_products');
-  if (s) { try { state.products = JSON.parse(s); } catch (e) { state.products = []; } }
-  if (state.products.length === 0) loadSampleProducts();
-  else { renderProducts(); renderAdminProductList(); }
+  // Ya no usamos localStorage para productos, solo si falla la nube mostramos un mensaje.
+  state.products = [];
+  renderProducts(); renderAdminProductList();
 }
-function saveLocalProducts() { localStorage.setItem('vk_products', JSON.stringify(state.products)); }
 
-function initSupabase(url, key) {
-  var u = url || state.settings.supabaseUrl;
-  var k = key || state.settings.supabaseKey;
-  if (!u || !k) { loadLocalProducts(); updateFirebaseStatusUI(false); return; }
+function initSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) { updateFirebaseStatusUI(false); return; }
   try {
-    state.supabase = supabase.createClient(u, k);
+    state.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     loadSupabaseProducts();
     updateFirebaseStatusUI(true);
   } catch (err) {
     updateFirebaseStatusUI(false);
-    showToast('Error Supabase. Modo local.', 'error');
-    loadLocalProducts();
+    showToast('Error conectando a Supabase.', 'error');
   }
 }
 
@@ -73,7 +74,7 @@ async function loadSupabaseProducts() {
     state.products = data || [];
     renderProducts(); renderAdminProductList();
   } catch (err) {
-    showToast('Error cargando Supabase.', 'error'); state.supabase = null; updateFirebaseStatusUI(false); loadLocalProducts();
+    showToast('Error cargando productos.', 'error'); state.supabase = null; updateFirebaseStatusUI(false);
   }
 }
 
@@ -93,7 +94,7 @@ function loadSampleProducts() {
     { id: 'sp5', name: 'VPN Premium Anual', category: 'Privacidad', price: 20, oldPrice: 40, description: 'Navega con total privacidad y seguridad.', features: ['Servidores en 60 paises', 'Sin limite', 'Soporte 24/7'], emoji: '🔐', imageUrl: '', featured: false },
     { id: 'sp6', name: 'Streaming Premium', category: 'Entretenimiento', price: 15, oldPrice: 30, description: 'Acceso a plataformas en calidad 4K Ultra HD.', features: ['Calidad 4K', 'Sin anuncios', '30 dias garantia'], emoji: '🎬', imageUrl: '', featured: false }
   ];
-  saveLocalProducts(); renderProducts(); renderAdminProductList();
+  renderProducts(); renderAdminProductList();
 }
 
 function initNavigation() {
@@ -287,10 +288,6 @@ function openAdmin() {
   }
   document.getElementById('settingsWhatsapp').value = state.settings.whatsapp || '';
   document.getElementById('settingsStoreName').value = state.settings.storeName || '';
-  document.getElementById('settingsCloudinaryName').value = state.settings.cloudinaryName || '';
-  document.getElementById('settingsCloudinaryPreset').value = state.settings.cloudinaryPreset || '';
-  document.getElementById('settingsSupabaseUrl').value = state.settings.supabaseUrl || '';
-  document.getElementById('settingsSupabaseKey').value = state.settings.supabaseKey || '';
   updateFirebaseStatusUI(!!state.supabase);
 }
 
@@ -298,7 +295,7 @@ function closeAdmin() { document.getElementById('adminOverlay').classList.remove
 
 function renderAdminProductList() {
   var list = document.getElementById('adminProductsList'); if (!list) return;
-  var mode = state.supabase ? 'Supabase' : 'Local';
+  var mode = state.supabase ? 'Conectado a la Nube' : 'Sin conexión';
   if (state.products.length === 0) { list.innerHTML = '<div class="admin-mode-badge">' + mode + '</div><p style="color:var(--tx-3);text-align:center;padding:24px">No hay productos.</p>'; return; }
   list.innerHTML = '<div class="admin-mode-badge">' + mode + '</div>' + state.products.map(function (p) {
     return '<div class="admin-product-item" id="admin-item-' + p.id + '"><div class="admin-product-thumb">' + (p.imageUrl ? '<img src="' + escAttr(p.imageUrl) + '" alt="' + escAttr(p.name) + '" onerror="this.style.display=\'none\'"/>' : '<span>' + (p.emoji || '📦') + '</span>') + '</div><div class="admin-product-info"><div class="admin-product-name">' + escHtml(p.name) + '</div><div class="admin-product-cat">' + escHtml(p.category) + ' · S/ ' + Number(p.price).toFixed(2) + '</div></div><div class="admin-product-actions"><button type="button" class="btn-icon" onclick="editProduct(\'' + p.id + '\')" title="Editar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button type="button" class="btn-icon danger" onclick="deleteProduct(\'' + p.id + '\')" title="Eliminar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button></div></div>';
@@ -339,7 +336,7 @@ window.editProduct = function (id) { var p = state.products.find(function (x) { 
 window.deleteProduct = async function (id) {
   if (!confirm('Eliminar este producto?')) return;
   if (state.supabase) { try { await state.supabase.from('products').delete().eq('id', id); state.products = state.products.filter(function (x) { return x.id !== id; }); renderProducts(); renderAdminProductList(); showToast('Producto eliminado.', 'info'); } catch (err) { showToast('Error: ' + err.message, 'error'); } }
-  else { state.products = state.products.filter(function (x) { return x.id !== id; }); saveLocalProducts(); renderProducts(); renderAdminProductList(); showToast('Eliminado', 'info'); }
+  else { showToast('No hay conexión a la base de datos.', 'error'); }
 };
 
 async function saveProduct(e) {
@@ -366,9 +363,7 @@ async function saveProduct(e) {
       loadSupabaseProducts();
     } catch (err) { showToast('Error: ' + err.message, 'error'); return; }
   } else {
-    if (state.editingProductId) { var idx = state.products.findIndex(function (x) { return x.id === state.editingProductId; }); if (idx !== -1) state.products[idx] = Object.assign({}, state.products[idx], pd); showToast('Actualizado.', 'success'); }
-    else { pd.id = 'p_' + Date.now(); pd.createdAt = Date.now(); state.products.push(pd); showToast('Agregado.', 'success'); }
-    saveLocalProducts(); renderProducts(); renderAdminProductList();
+    showToast('No hay conexión a la base de datos.', 'error');
   }
   hideProductForm();
 }
@@ -378,32 +373,10 @@ function saveSettingsForm(e) {
   var wa = document.getElementById('settingsWhatsapp').value.trim();
   var sn = document.getElementById('settingsStoreName').value.trim();
   var pw = document.getElementById('settingsPassword').value.trim();
-  var cName = document.getElementById('settingsCloudinaryName').value.trim();
-  var cPreset = document.getElementById('settingsCloudinaryPreset').value.trim();
-  var su = document.getElementById('settingsSupabaseUrl').value.trim();
-  var sk = document.getElementById('settingsSupabaseKey').value.trim();
   if (!wa) { showToast('WhatsApp requerido', 'error'); return; }
   state.settings.whatsapp = wa; if (sn) state.settings.storeName = sn; if (pw) state.settings.adminPassword = pw;
-  state.settings.cloudinaryName = cName; state.settings.cloudinaryPreset = cPreset;
-  state.settings.supabaseUrl = su; state.settings.supabaseKey = sk;
   saveSettingsToStorage(); updateWhatsAppLinks();
-  if (state.settings.supabaseUrl && state.settings.supabaseKey) initSupabase(state.settings.supabaseUrl, state.settings.supabaseKey);
   showToast('Configuracion guardada.', 'success'); document.getElementById('settingsPassword').value = '';
-}
-
-async function testFirebaseConnection() {
-  var btn = document.getElementById('testFirebaseBtn');
-  var su = document.getElementById('settingsSupabaseUrl').value.trim();
-  var sk = document.getElementById('settingsSupabaseKey').value.trim();
-  if (!su || !sk) { showToast('Falta URL o Key de Supabase', 'error'); return; }
-  btn.disabled = true; btn.textContent = 'Probando...';
-  try {
-    var s = supabase.createClient(su, sk);
-    var { data, error } = await s.from('products').select('id').limit(1);
-    if (error) throw error;
-    state.supabase = s; state.settings.supabaseUrl = su; state.settings.supabaseKey = sk; saveSettingsToStorage(); loadSupabaseProducts(); updateFirebaseStatusUI(true); showToast('Supabase conectado.', 'success');
-  } catch (err) { updateFirebaseStatusUI(false); showToast('Error: ' + err.message, 'error'); }
-  finally { btn.disabled = false; btn.textContent = 'Probar Conexion'; }
 }
 
 function bindEvents() {
@@ -456,7 +429,6 @@ function bindEvents() {
   document.getElementById('cancelProductBtn').addEventListener('click', hideProductForm);
   document.getElementById('productForm').addEventListener('submit', saveProduct);
   document.getElementById('settingsForm').addEventListener('submit', saveSettingsForm);
-  document.getElementById('testFirebaseBtn').addEventListener('click', testFirebaseConnection);
 
   document.getElementById('modalClose').addEventListener('click', closeProductModal);
   document.getElementById('productModal').addEventListener('click', function (e) { if (e.target === document.getElementById('productModal')) closeProductModal(); });
@@ -474,8 +446,8 @@ function bindEvents() {
 
   function handleFileUpload(f) {
     if (!f) return;
-    if (!state.settings.cloudinaryName || !state.settings.cloudinaryPreset) {
-      showToast('Configura Cloudinary en Ajustes primero', 'error');
+    if (!CLOUDINARY_NAME || !CLOUDINARY_PRESET) {
+      showToast('Cloudinary no configurado', 'error');
       return;
     }
     
@@ -485,10 +457,10 @@ function bindEvents() {
     
     var formData = new FormData();
     formData.append('file', f);
-    formData.append('upload_preset', state.settings.cloudinaryPreset);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
     
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + state.settings.cloudinaryName + '/image/upload', true);
+    xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_NAME + '/image/upload', true);
     
     xhr.upload.onprogress = function(e) {
       if (e.lengthComputable) {
