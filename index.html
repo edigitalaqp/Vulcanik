@@ -503,10 +503,14 @@
           </svg>
         </div>
         <h3>Acceso Seguro</h3>
-        <p>Ingresa tu contraseña y código de autenticación</p>
+        <p>Autenticación verificada por servidor</p>
+        <div class="form-group">
+          <label for="adminEmail">Correo electrónico</label>
+          <input type="email" id="adminEmail" placeholder="tu@email.com" autocomplete="email" />
+        </div>
         <div class="form-group">
           <label for="adminPassword">Contraseña</label>
-          <input type="password" id="adminPassword" placeholder="Contraseña" />
+          <input type="password" id="adminPassword" placeholder="Contraseña" autocomplete="current-password" />
         </div>
         <div class="form-group" id="totpCodeGroup">
           <label for="adminTotpCode">Código Authy / Authenticator</label>
@@ -515,7 +519,7 @@
           <small style="color:var(--tx-3);">Código temporal de 6 dígitos de tu app</small>
         </div>
         <button class="btn btn-primary btn-full" id="adminLoginBtn">Ingresar</button>
-        <!-- RECUPERACIÓN: Si pierdes acceso, ve a DevTools → Application → LocalStorage → borra 'vk_totp_secret' -->
+        <!-- RECUPERACIÓN TOTP: DevTools → Application → Local Storage → borra 'vk_totp_secret' -->
       </div>
       <div class="admin-main" id="adminMain" style="display:none;">
         <div class="admin-tabs">
