@@ -24,6 +24,34 @@ var state = {
   productsPerPage: 4
 };
 
+/* ══ CONFIGURACIÓN DE SEGURIDAD DEL LOGIN ══ */
+var _loginBusy    = false;             // Debounce: bloquea doble-click
+var MAX_ATTEMPTS  = 5;                 // Intentos antes del bloqueo
+var LOCKOUT_MS    = 15 * 60 * 1000;   // 15 minutos de bloqueo
+var MIN_RES_MS    = 800;               // Tiempo mínimo de respuesta (anti-timing attack)
+var MAX_EMAIL_LEN = 254;               // Límite RFC 5321
+var MAX_PW_LEN    = 128;               // Límite práctico de contraseña
+var MAX_TOTP_LEN  = 6;                 // TOTP siempre 6 dígitos
+
+// Sanitiza y trunca input — mitiga desbordamientos de buffer y caracteres maliciosos
+function _sanitize(str, maxLen) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .slice(0, maxLen)                              // truncar (anti overflow)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // eliminar null bytes y ctrl chars
+}
+
+function _getLock() {
+  return {
+    until:    parseInt(sessionStorage.getItem('vk_lu') || '0'),
+    attempts: parseInt(sessionStorage.getItem('vk_fa') || '0')
+  };
+}
+function _setAttempts(n) { sessionStorage.setItem('vk_fa', String(n)); }
+function _setLockout()   { sessionStorage.setItem('vk_lu', String(Date.now() + LOCKOUT_MS)); }
+function _clearLock()    { sessionStorage.removeItem('vk_fa'); sessionStorage.removeItem('vk_lu'); }
+
+
 
 document.addEventListener('DOMContentLoaded', function () {
   initNavigation();
@@ -397,45 +425,104 @@ function bindEvents() {
   document.getElementById('adminOverlay').addEventListener('click', function (e) { if (e.target === document.getElementById('adminOverlay')) closeAdmin(); });
 
 
-  // ── Login con Supabase Auth (verificación en servidor) ──
+  // ── Login con Supabase Auth + capas de ciberseguridad ──
   document.getElementById('adminLoginBtn').addEventListener('click', async function () {
-    var btn = document.getElementById('adminLoginBtn');
-    var emailEl = document.getElementById('adminEmail');
-    var pwEl = document.getElementById('adminPassword');
-    var totpEl = document.getElementById('adminTotpCode');
+    var btn      = document.getElementById('adminLoginBtn');
+    var emailEl  = document.getElementById('adminEmail');
+    var pwEl     = document.getElementById('adminPassword');
+    var totpEl   = document.getElementById('adminTotpCode');
+    var honeypot = document.getElementById('vk_hp');
 
-    var email = emailEl ? emailEl.value.trim() : '';
-    var pw = pwEl ? pwEl.value : '';
-    var totpCode = totpEl ? totpEl.value.trim() : '';
+    // ─ 1. DEBOUNCE: impide doble-click y peticiones en ráfaga ──────────────────────
+    if (_loginBusy) return;
+    _loginBusy = true;
 
-    if (!email || !pw) { showToast('Ingresa email y contraseña', 'error'); return; }
-    if (!state.supabase) { showToast('Sin conexión con el servidor', 'error'); return; }
+    // ─ 2. BLOQUEO ACTIVO: verificar lockout ────────────────────────────────
+    var lock = _getLock();
+    if (Date.now() < lock.until) {
+      var secs = Math.ceil((lock.until - Date.now()) / 1000);
+      var m = Math.floor(secs / 60), s = secs % 60;
+      showToast('🔒 Bloqueado. Espera ' + m + 'm ' + s + 's.', 'error');
+      _loginBusy = false;
+      return;
+    }
+
+    // ─ 3. HONEYPOT: bot detector (campo oculto que bots rellenan) ──────────
+    if (honeypot && honeypot.value !== '') {
+      // Simular comportamiento normal para no delatar la detección
+      await new Promise(function(r) { setTimeout(r, 1200); });
+      showToast('Credenciales incorrectas', 'error');
+      _loginBusy = false;
+      return;
+    }
+
+    // ─ 4. SANITIZACIÓN + LÍMITE DE LONGITUD (anti buffer overflow) ────
+    var email    = _sanitize(emailEl ? emailEl.value.trim() : '', MAX_EMAIL_LEN);
+    var pw       = _sanitize(pwEl ? pwEl.value : '', MAX_PW_LEN);
+    var totpCode = _sanitize(totpEl ? totpEl.value.trim() : '', MAX_TOTP_LEN);
+
+    // ─ 5. VALIDACIÓN DE FORMATO (no revelar qué campo falla) ──────────
+    if (!email || !pw) {
+      showToast('Ingresa email y contraseña', 'error');
+      _loginBusy = false; return;
+    }
+    if (!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast('Formato de email inválido', 'error');
+      _loginBusy = false; return;
+    }
+    if (isTotpConfigured() && totpCode && !/^\d{6}$/.test(totpCode)) {
+      showToast('El código debe ser de 6 dígitos numéricos', 'error');
+      _loginBusy = false; return;
+    }
+    if (!state.supabase) {
+      showToast('Sin conexión con el servidor', 'error');
+      _loginBusy = false; return;
+    }
 
     btn.disabled = true; btn.textContent = 'Verificando...';
 
     try {
-      // Autenticación en servidores de Supabase — la contraseña NUNCA se compara localmente
-      var { data, error } = await state.supabase.auth.signInWithPassword({ email: email, password: pw });
+      // ─ 6. TIEMPO MÍNIMO DE RESPUESTA (anti timing-attack) ────────────
+      // Promise.all garantiza que siempre tarde al menos MIN_RES_MS,
+      // independientemente de si la contraseña es correcta o no.
+      var results = await Promise.all([
+        state.supabase.auth.signInWithPassword({ email: email, password: pw }),
+        new Promise(function(r) { setTimeout(r, MIN_RES_MS); })
+      ]);
+      var authData = results[0], authError = authData.error;
 
-      if (error) {
-        // Mensaje genérico (no revelar si el error es email o contraseña)
-        showToast('Credenciales incorrectas', 'error');
+      if (authError) {
+        // ─ 7. CONTEO DE FALLOS + DELAY EXPONENCIAL (anti fuerza bruta) ──
+        var attempts = lock.attempts + 1;
+        if (attempts >= MAX_ATTEMPTS) {
+          _setLockout(); _setAttempts(0);
+          showToast('🔒 Demasiados intentos. Bloqueado 15 minutos.', 'error');
+        } else {
+          _setAttempts(attempts);
+          // Delay exponencial: 1s → 2s → 4s → 8s (máx 16s)
+          var delay = Math.min(1000 * Math.pow(2, attempts - 1), 16000);
+          await new Promise(function(r) { setTimeout(r, delay); });
+          var left = MAX_ATTEMPTS - attempts;
+          showToast('Credenciales incorrectas. ' + left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.', 'error');
+        }
         pwEl.value = '';
         btn.disabled = false; btn.textContent = 'Ingresar';
+        _loginBusy = false;
         return;
       }
 
-      // Verificar TOTP como segunda capa
+      // ─ 8. VERIFICAR TOTP (segunda capa) ───────────────────────────
       if (isTotpConfigured() && !verifyTotp(getTotpSecret(), totpCode)) {
         showToast('Código Authenticator incorrecto', 'error');
         if (totpEl) totpEl.value = '';
-        // Cerrar sesión de Supabase si el TOTP falla
-        await state.supabase.auth.signOut();
+        await state.supabase.auth.signOut(); // Revocar token si TOTP falla
         btn.disabled = false; btn.textContent = 'Ingresar';
+        _loginBusy = false;
         return;
       }
 
-      // ✅ Acceso completo concedido
+      // ✅ ACCESO CONCEDIDO
+      _clearLock();
       state.adminAuthenticated = true;
       document.getElementById('adminAuth').style.display = 'none';
       document.getElementById('adminMain').style.display = 'block';
@@ -447,6 +534,7 @@ function bindEvents() {
     }
 
     btn.disabled = false; btn.textContent = 'Ingresar';
+    _loginBusy = false;
   });
 
   document.getElementById('adminPassword').addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('adminLoginBtn').click(); });

@@ -506,11 +506,15 @@
         <p>Autenticación verificada por servidor</p>
         <div class="form-group">
           <label for="adminEmail">Correo electrónico</label>
-          <input type="email" id="adminEmail" placeholder="tu@email.com" autocomplete="email" />
+          <input type="email" id="adminEmail" placeholder="tu@email.com" autocomplete="email" maxlength="254" />
         </div>
         <div class="form-group">
           <label for="adminPassword">Contraseña</label>
-          <input type="password" id="adminPassword" placeholder="Contraseña" autocomplete="current-password" />
+          <input type="password" id="adminPassword" placeholder="Contraseña" autocomplete="current-password" maxlength="128" />
+        </div>
+        <!-- Honeypot: oculto para humanos, bots lo rellenan automáticamente -->
+        <div style="position:absolute;left:-9999px;top:-9999px;opacity:0;" aria-hidden="true" tabindex="-1">
+          <input type="text" id="vk_hp" name="website" autocomplete="off" tabindex="-1" />
         </div>
         <div class="form-group" id="totpCodeGroup">
           <label for="adminTotpCode">Código Authy / Authenticator</label>
