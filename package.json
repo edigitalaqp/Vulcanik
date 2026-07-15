@@ -1,0 +1,11 @@
+{
+  "name": "vulkanic-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npx javascript-obfuscator app.js --output app.js --compact true --self-defending true --disable-console-output true --identifier-names-generator hexadecimal --string-array true --string-array-encoding base64 --string-array-rotate true --string-array-shuffle true --rename-globals false"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^4.1.1"
+  }
+}
