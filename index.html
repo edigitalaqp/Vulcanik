@@ -16,6 +16,24 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <!-- disable-devtool: bloquea acceso a herramientas de desarrollador -->
+  <script src="https://cdn.jsdelivr.net/npm/disable-devtool@latest/disable-devtool.min.js"></script>
+  <script>
+    DisableDevtool({
+      ondevtoolopen: function(type) {
+        // Limpiar todo dato sensible de sesión al detectar DevTools
+        sessionStorage.clear();
+        document.getElementById('adminOverlay') && (document.getElementById('adminOverlay').classList.remove('open'));
+      },
+      clearIntervalTime: 1000,
+      disableMenu: true,
+      disableSelect: false,
+      disableCopy: false,
+      disableCut: false,
+      disablePaste: false,
+      interval: 500
+    });
+  </script>
 </head>
 
 <body>
@@ -178,8 +196,8 @@
           <div class="section-header">
             <div class="section-tag">Catálogo</div>
             <h2 class="section-title">Nuestros <span class="gradient-text">Productos</span></h2>
-            <p class="section-subtitle">Encuentra las mejores licencias y servicios digitales para tu negocio o uso
-              personal.<span>Encuentra Los Mejores Precios al X Mayor y Menor.</span></p>
+            <p class="section-subtitle">Encuentra las Mejores LICENCIAS y SERVICIOS DIGITALES para tu Negocio o uso
+              Personal.<span> <br>Encuentra Los Mejores Precios al X Mayor y Menor.</span></p>
           </div>
 
           <!-- BUSCADOR -->
@@ -497,8 +515,7 @@
           <small style="color:var(--tx-3);">Código temporal de 6 dígitos de tu app</small>
         </div>
         <button class="btn btn-primary btn-full" id="adminLoginBtn">Ingresar</button>
-        <button class="btn btn-ghost btn-full" id="resetTotpBtn" style="margin-top:8px;font-size:.78rem;">¿Perdiste el
-          acceso? Reconfigurar Authenticator</button>
+        <!-- RECUPERACIÓN: Si pierdes acceso, ve a DevTools → Application → LocalStorage → borra 'vk_totp_secret' -->
       </div>
       <div class="admin-main" id="adminMain" style="display:none;">
         <div class="admin-tabs">

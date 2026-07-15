@@ -8,9 +8,13 @@ var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 var CLOUDINARY_NAME = 'dngdzb32p';
 var CLOUDINARY_PRESET = 'vulkanic_imagenes';
 
+// ══ HASH SHA-256 de la contraseña admin (nunca en texto plano) ══
+// Para cambiarla: https://emn178.github.io/online-tools/sha256.html
+var ADMIN_PW_HASH = '26268a2ea0d0ef9e625bb90740afb2ee6f1d15b392bb6542746658749d339480';
+
 var state = {
   products: [],
-  settings: { whatsapp: '32466458677', storeName: 'Vulkanic Soft Peru', adminPassword: 'vulkanic2025' },
+  settings: { whatsapp: '32466458677', storeName: 'Vulkanic Soft Peru' },
   adminAuthenticated: false,
   editingProductId: null,
   supabase: null,
@@ -20,8 +24,8 @@ var state = {
   productsPerPage: 4
 };
 
+
 document.addEventListener('DOMContentLoaded', function () {
-  loadSettingsFromStorage();
   initNavigation();
   initLavaParticles();
   initProductsParticles();
@@ -29,6 +33,9 @@ document.addEventListener('DOMContentLoaded', function () {
   bindEvents();
   updateWhatsAppLinks();
   initSupabase();
+  // Limpiar cualquier localStorage residual por seguridad
+  localStorage.removeItem('vk_settings');
+  localStorage.removeItem('vk_totp_secret');
   if (window.location.hash === '#ownerVulkanic') {
     history.replaceState(null, '', window.location.pathname);
     openAdmin();
@@ -48,11 +55,9 @@ window.addEventListener('hashchange', function () {
   }
 });
 
-function loadSettingsFromStorage() {
-  var s = localStorage.getItem('vk_settings');
-  if (s) { try { state.settings = Object.assign({}, state.settings, JSON.parse(s)); } catch (e) { } }
-}
-function saveSettingsToStorage() { localStorage.setItem('vk_settings', JSON.stringify(state.settings)); }
+// Settings solo en memoria, nada en localStorage
+function saveSettingsToStorage() { /* no-op: sin persistencia local */ }
+
 
 function loadLocalProducts() {
   // Ya no usamos localStorage para productos, solo si falla la nube mostramos un mensaje.
@@ -252,9 +257,11 @@ function initContactForm() {
   });
 }
 
-/* ─── TOTP ─── */
-function getTotpSecret() { return localStorage.getItem('vk_totp_secret') || null; }
-function saveTotpSecret(s) { localStorage.setItem('vk_totp_secret', s); }
+/* ─── TOTP: usa sessionStorage (no localStorage) ───
+   sessionStorage se borra al cerrar la pestaña/navegador.
+   Para resetear: Dev→Application→Session Storage→borra 'vk_ts' */
+function getTotpSecret() { return sessionStorage.getItem('vk_ts') || null; }
+function saveTotpSecret(s) { sessionStorage.setItem('vk_ts', s); }
 function isTotpConfigured() { return !!getTotpSecret(); }
 
 function generateTotpSecret() {
@@ -378,36 +385,78 @@ function saveSettingsForm(e) {
   e.preventDefault();
   var wa = document.getElementById('settingsWhatsapp').value.trim();
   var sn = document.getElementById('settingsStoreName').value.trim();
-  var pw = document.getElementById('settingsPassword').value.trim();
   if (!wa) { showToast('WhatsApp requerido', 'error'); return; }
-  state.settings.whatsapp = wa; if (sn) state.settings.storeName = sn; if (pw) state.settings.adminPassword = pw;
-  saveSettingsToStorage(); updateWhatsAppLinks();
-  showToast('Configuracion guardada.', 'success'); document.getElementById('settingsPassword').value = '';
+  state.settings.whatsapp = wa;
+  if (sn) state.settings.storeName = sn;
+  // Nota: la contraseña admin se cambia editando ADMIN_PW_HASH en app.js con el nuevo hash SHA-256
+  updateWhatsAppLinks();
+  showToast('Configuracion guardada.', 'success');
 }
 
 function bindEvents() {
   document.getElementById('adminClose').addEventListener('click', closeAdmin);
   document.getElementById('adminOverlay').addEventListener('click', function (e) { if (e.target === document.getElementById('adminOverlay')) closeAdmin(); });
 
-  document.getElementById('adminLoginBtn').addEventListener('click', function () {
+  // ── Login con SHA-256 + protección anti fuerza bruta ──
+  document.getElementById('adminLoginBtn').addEventListener('click', async function () {
+    var btn = document.getElementById('adminLoginBtn');
+
+    // Verificar bloqueo en sessionStorage
+    var lockUntil = parseInt(sessionStorage.getItem('vk_lu') || '0');
+    if (Date.now() < lockUntil) {
+      var secs = Math.ceil((lockUntil - Date.now()) / 1000);
+      showToast('Bloqueado. Espera ' + secs + ' segundos.', 'error');
+      return;
+    }
+
     var pw = document.getElementById('adminPassword').value;
     var code = (document.getElementById('adminTotpCode') ? document.getElementById('adminTotpCode').value : '').trim();
-    if (pw !== state.settings.adminPassword) { showToast('Contrasena incorrecta', 'error'); document.getElementById('adminPassword').value = ''; return; }
-    if (isTotpConfigured() && !verifyTotp(getTotpSecret(), code)) { showToast('Codigo incorrecto o expirado', 'error'); if (document.getElementById('adminTotpCode')) document.getElementById('adminTotpCode').value = ''; return; }
+
+    btn.disabled = true; btn.textContent = 'Verificando...';
+
+    // Delay artificial base (dificulta timing attacks y automatización)
+    await new Promise(function(r) { setTimeout(r, 600); });
+
+    var pwHash = await sha256(pw);
+    if (pwHash !== ADMIN_PW_HASH) {
+      var attempts = parseInt(sessionStorage.getItem('vk_fa') || '0') + 1;
+      sessionStorage.setItem('vk_fa', attempts);
+      // Delay exponencial: 600ms, 1.2s, 2.4s... máximo 30s
+      var delay = Math.min(600 * Math.pow(2, attempts), 30000);
+      if (attempts >= 5) {
+        // Bloqueo de 10 minutos tras 5 fallos
+        sessionStorage.setItem('vk_lu', Date.now() + 10 * 60 * 1000);
+        sessionStorage.setItem('vk_fa', '0');
+        showToast('Demasiados intentos. Bloqueado 10 minutos.', 'error');
+      } else {
+        await new Promise(function(r) { setTimeout(r, delay); });
+        showToast('Contraseña incorrecta (' + (5 - attempts) + ' intentos restantes)', 'error');
+      }
+      document.getElementById('adminPassword').value = '';
+      btn.disabled = false; btn.textContent = 'Ingresar';
+      return;
+    }
+
+    if (isTotpConfigured() && !verifyTotp(getTotpSecret(), code)) {
+      showToast('Código incorrecto o expirado', 'error');
+      if (document.getElementById('adminTotpCode')) document.getElementById('adminTotpCode').value = '';
+      btn.disabled = false; btn.textContent = 'Ingresar';
+      return;
+    }
+
+    // ✅ Acceso concedido
+    sessionStorage.removeItem('vk_fa');
+    sessionStorage.removeItem('vk_lu');
     state.adminAuthenticated = true;
-    document.getElementById('adminAuth').style.display = 'none'; document.getElementById('adminMain').style.display = 'block';
+    document.getElementById('adminAuth').style.display = 'none';
+    document.getElementById('adminMain').style.display = 'block';
     updateFirebaseStatusUI(!!state.supabase);
     showToast('Acceso concedido.', 'success');
+    btn.disabled = false; btn.textContent = 'Ingresar';
   });
 
   document.getElementById('adminPassword').addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('adminLoginBtn').click(); });
   var tc = document.getElementById('adminTotpCode'); if (tc) tc.addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('adminLoginBtn').click(); });
-
-  var resetBtn = document.getElementById('resetTotpBtn');
-  if (resetBtn) resetBtn.addEventListener('click', function () {
-    if (!confirm('Generar nuevo QR? Deberas volver a escanear con Authy.')) return;
-    var secret = generateTotpSecret(); showTotpSetup(secret); document.getElementById('totpSetupBtn')._pendingSecret = secret;
-  });
 
   var setupBtn = document.getElementById('totpSetupBtn');
   var setupCodeInput = document.getElementById('totpSetupCode');
@@ -531,3 +580,10 @@ function showToast(msg, type) {
 
 function escHtml(s) { if (!s && s !== 0) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
 function escAttr(s) { if (!s) return ''; return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
+
+/* ─── SHA-256 via WebCrypto API nativa (sin librerías externas) ─── */
+async function sha256(message) {
+  var buf = new TextEncoder().encode(message);
+  var hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
