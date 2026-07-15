@@ -64,24 +64,59 @@ document.addEventListener('DOMContentLoaded', function () {
   // Limpiar cualquier localStorage residual por seguridad
   localStorage.removeItem('vk_settings');
   localStorage.removeItem('vk_totp_secret');
-  if (window.location.hash === '#ownerVulkanic') {
-    history.replaceState(null, '', window.location.pathname);
-    openAdmin();
-  } else if (window.location.hash === '#productos') {
+  // Solo manejar hash de productos (el hash de admin fue eliminado)
+  if (window.location.hash === '#productos') {
     history.replaceState(null, '', window.location.pathname);
     setTimeout(function() { navigateToPage('productos'); }, 50);
+  } else if (window.location.hash) {
+    // Limpiar cualquier hash desconocido (incluido el antiguo #ownerVulkanic)
+    history.replaceState(null, '', window.location.pathname);
   }
 });
 
 window.addEventListener('hashchange', function () {
-  if (window.location.hash === '#ownerVulkanic') {
-    history.replaceState(null, '', window.location.pathname);
-    openAdmin();
-  } else if (window.location.hash === '#productos') {
+  if (window.location.hash === '#productos') {
     history.replaceState(null, '', window.location.pathname);
     navigateToPage('productos');
+  } else if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname);
   }
 });
+
+/* ══ ACCESO ADMIN: Secuencia de teclado secreta ══
+   Presiona las teclas V → K → P (en ese orden, sin estar en un campo de texto)
+   No aparece en la URL, en el HTML ni en ningún lugar visible de la página.
+   En la versión publicada en Vercel el código queda ofuscado.
+*/
+(function () {
+  var _seq = ['v', 'k', 'p'];  // Secuencia: V → K → P
+  var _buf = [];
+  var _timer = null;
+
+  document.addEventListener('keydown', function (e) {
+    // Ignorar si el usuario está escribiendo en un campo
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    // Ignorar teclas modificadoras solas
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+    _buf.push(e.key.toLowerCase());
+    // Mantener solo los últimos N caracteres de la secuencia
+    if (_buf.length > _seq.length) _buf.shift();
+
+    // Reiniciar buffer si pasa 4 segundos sin completar la secuencia
+    clearTimeout(_timer);
+    _timer = setTimeout(function () { _buf = []; }, 4000);
+
+    // Verificar si el buffer coincide con la secuencia
+    if (_buf.join('') === _seq.join('')) {
+      _buf = [];
+      clearTimeout(_timer);
+      openAdmin();
+    }
+  });
+}());
+
 
 // Settings solo en memoria, nada en localStorage
 function saveSettingsToStorage() { /* no-op: sin persistencia local */ }
