@@ -257,11 +257,11 @@ function initContactForm() {
   });
 }
 
-/* ─── TOTP: usa sessionStorage (no localStorage) ───
-   sessionStorage se borra al cerrar la pestaña/navegador.
-   Para resetear: Dev→Application→Session Storage→borra 'vk_ts' */
-function getTotpSecret() { return sessionStorage.getItem('vk_ts') || null; }
-function saveTotpSecret(s) { sessionStorage.setItem('vk_ts', s); }
+/* ─── TOTP: guardado en localStorage para persistir entre sesiones ───
+   El secreto TOTP es un código aleatorio (no es tu contraseña).
+   Para resetear: DevTools → Application → Local Storage → borra 'vk_totp_secret' */
+function getTotpSecret() { return localStorage.getItem('vk_totp_secret') || null; }
+function saveTotpSecret(s) { localStorage.setItem('vk_totp_secret', s); }
 function isTotpConfigured() { return !!getTotpSecret(); }
 
 function generateTotpSecret() {
