@@ -118,7 +118,7 @@ p  { color: var(--tx-2); }
 }
 
 .logo-img {
-  width: 30px;
+  width: 50px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
